@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    (function (m, a, z, e) {
+      var s, t, u, v;
+      try {
+        t = m.sessionStorage.getItem('maze-us');
+      } catch (err) {}
+      if (!t) {
+        t = new Date().getTime();
+        try {
+          m.sessionStorage.setItem('maze-us', t);
+        } catch (err) {}
+      }
+      u = document.currentScript || (function () {
+        var w = document.getElementsByTagName('script');
+        return w[w.length - 1];
+      })();
+      v = u && u.nonce;
+      s = a.createElement('script');
+      s.src = z + '?apiKey=' + e;
+      s.async = true;
+      if (v) s.setAttribute('nonce', v);
+      a.getElementsByTagName('head')[0].appendChild(s);
+      m.mazeUniversalSnippetApiKey = e;
+    })(window, document, 'https://snippet.maze.co/maze-universal-loader.js', '210b6028-2547-4faa-bfc4-83ab0b174097');
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workspace v4</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: #f4f4f5;
+      color: #0f172a;
+      -webkit-font-smoothing: antialiased;
+    }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes slideIn { from { opacity:0; transform:translateX(-8px); } to { opacity:1; transform:translateX(0); } }
+    .fade-up { animation: fadeUp 0.16s ease-out; }
+    .slide-in { animation: slideIn 0.16s ease-out; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+    input, textarea, select, button { font-family: inherit; }
+    button { cursor: pointer; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback } = React;
+
+/* ─── DESIGN TOKENS ─────────────────────────────────────────────────── */
+const T = {
+  bg: '#f4f4f5',
+  surface: '#ffffff',
+  border: '#e4e4e7',
+  borderSubtle: '#f4f4f5',
+  text: '#09090b',
+  textSec: '#71717a',
+  textMuted: '#a1a1aa',
+  iconInactive: '#a1a1aa',
+  iconActive: '#09090b',
+  activeBg: '#f4f4f5',
+  hover: '#fafafa',
+  btnDark: '#09090b',
+  btnDarkText: '#ffffff',
+  shadow: '0 1px 3px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.04)',
+  shadowMd: '0 4px 12px rgba(0,0,0,.08)',
+  radius: '10px',
+  radiusSm: '7px',
+};
+
+/* ─── TOOL BRAND COLORS ──────────────────────────────────────────────── */
+const BRAND = {
+  gmail:   { color:'#EA4335', label:'Gmail',   short:'G' },
+  outlook: { color:'#0078D4', label:'Outlook', short:'O' },
+  slack:   { color:'#4A154B', label:'Slack',   short:'S' },
+  teams:   { color:'#464EB8', label:'Teams',   short:'T' },
+  gcal:    { color:'#1A73E8', label:'GCal',    short:'C' },
+  hubspot: { color:'#FF7A59', label:'HubSpot', short:'HS' },
+  notion:  { color:'#000000', label:'Notion',  short:'N' },
+  jira:    { color:'#0052CC', label:'Jira',    short:'J' },
+  linear:  { color:'#5E6AD2', label:'Linear',  short:'L' },
+};
+
+const ToolBadge = ({ tool, size=18 }) => {
+  const b = BRAND[tool];
+  if (!b) return null;
+  return (
+    <div style={{width:size, height:size, borderRadius:size*0.25, background:b.color, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+      <span style={{color:'#fff', fontSize:size*0.45, fontWeight:800, lineHeight:1, letterSpacing:'-0.02em'}}>{b.short}</span>
+    </div>
+  );
+};
+
+/* ─── SVG ICONS ──────────────────────────────────────────────────────── */
+const PATHS = {
+  home:    [["M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"], ["M9 22V12h6v10"]],
+  mail:    [["M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"]],
+  chat:    [["M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"]],
+  cal:     [["M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"]],
+  search:  [["M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"]],
+  plug:    [["M18.36 6.64a9 9 0 11-12.73 0M12 2v10"]],
+  gear:    [["M12 15a3 3 0 100-6 3 3 0 000 6z"], ["M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"]],
+  card:    [["M3 10h18M7 15h1m4 0h1M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"]],
+  help:    [["M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"], ["M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"]],
+  bell:    [["M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"]],
+  chevron: [["M9 18l6-6-6-6"]],
+  x:       [["M18 6L6 18M6 6l12 12"]],
+  plus:    [["M12 5v14M5 12h14"]],
+  dots:    [["M12 13a1 1 0 110-2 1 1 0 010 2zM19 13a1 1 0 110-2 1 1 0 010 2zM5 13a1 1 0 110-2 1 1 0 010 2z"]],
+  reply:   [["M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"]],
+  check:   [["M20 6L9 17l-5-5"]],
+  send:    [["M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"]],
+};
+
+const Icon = ({ name, size=16, color=T.iconInactive, strokeWidth=1.6 }) => {
+  const segments = PATHS[name] || [];
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+      {segments.map((d,i) => <path key={i} d={d} />)}
+    </svg>
+  );
+};
+
+/* ─── SHARED COMPONENTS ──────────────────────────────────────────────── */
+const Avatar = ({initials, color='#e4e4e7', textColor='#71717a', size=28}) => (
+  <div style={{width:size, height:size, borderRadius:'50%', background:color, color:textColor, display:'flex', alignItems:'center', justifyContent:'center', fontSize:size*0.36, fontWeight:700, flexShrink:0, letterSpacing:'-0.02em'}}>{initials}</div>
+);
+
+const Dot = ({color='#ef4444', size=7}) => (
+  <div style={{width:size, height:size, borderRadius:'50%', background:color, flexShrink:0}} />
+);
+
+const Card = ({children, style={}}) => (
+  <div style={{background:T.surface, borderRadius:T.radius, boxShadow:T.shadow, overflow:'hidden', display:'flex', flexDirection:'column', ...style}}>
+    {children}
+  </div>
+);
+
+const CardHeader = ({title, icon, count, action, onAction}) => (
+  <div style={{display:'flex', alignItems:'center', padding:'12px 14px 10px', borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, gap:8}}>
+    {icon && <Icon name={icon} size={14} color={T.text} strokeWidth={2} />}
+    <span style={{fontWeight:700, fontSize:13, color:T.text, flex:1}}>{title}</span>
+    {count != null && count > 0 && (
+      <span style={{fontSize:10.5, fontWeight:700, color:T.textMuted, background:T.bg, padding:'1px 6px', borderRadius:10, lineHeight:'16px'}}>{count}</span>
+    )}
+    {action && (
+      <button onClick={onAction} style={{background:'none', border:'none', color:T.textMuted, display:'flex', alignItems:'center', padding:2, borderRadius:5}} onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.textMuted}>
+        <Icon name="plus" size={14} color="currentColor" />
+      </button>
+    )}
+  </div>
+);
+
+const Btn = ({label, icon, variant='outline', onClick, small}) => {
+  const base = {
+    display:'flex', alignItems:'center', gap:6, border:'none', borderRadius:T.radiusSm, cursor:'pointer', fontWeight:600, fontSize:small?11:12.5, transition:'all 0.12s', lineHeight:1,
+  };
+  const styles = {
+    dark:    {...base, background:T.btnDark, color:T.btnDarkText, padding:small?'5px 10px':'7px 14px'},
+    outline: {...base, background:T.surface, color:T.text, border:`1px solid ${T.border}`, padding:small?'4px 9px':'6px 13px'},
+    ghost:   {...base, background:'transparent', color:T.textSec, padding:small?'4px 8px':'5px 10px'},
+  };
+  return (
+    <button style={styles[variant]} onClick={onClick}
+      onMouseEnter={e=>{e.currentTarget.style.opacity='0.82';}}
+      onMouseLeave={e=>{e.currentTarget.style.opacity='1';}}>
+      {icon && <Icon name={icon} size={12} color="currentColor" strokeWidth={2} />}
+      {label}
+    </button>
+  );
+};
+
+/* ─── DATA ───────────────────────────────────────────────────────────── */
+const INBOX_DATA = [
+  {id:1, from:'Sarah Chen', initials:'SC', subject:'Re: Meridian Q1 Deliverables', preview:'Files are in the Drive folder. Let me know if the format works for their team.', time:'9:42 AM', unread:true, source:'gmail'},
+  {id:2, from:'Marcus Webb', initials:'MW', subject:'Harlow scope update – v2', preview:'Two questions on the timeline before I send to their exec team — got 15 min today?', time:'9:15 AM', unread:true, source:'gmail'},
+  {id:3, from:'Jira', initials:'JI', subject:'[SCRUM-72] assigned to you', preview:'Marcus Webb has assigned SCRUM-72 "Build notification center" to you.', time:'8:50 AM', unread:false, source:'outlook'},
+  {id:4, from:'Notion', initials:'NO', subject:'New comment on "Meridian Roadmap"', preview:'Alex left a comment: "@you Can we confirm Q2 scope before Thursday?\'s exec review?"', time:'8:30 AM', unread:false, source:'gmail'},
+  {id:5, from:'Lena Park', initials:'LP', subject:'Contract renewal – signature needed', preview:'Hi Jordan, attaching the updated MSA for your signature.', time:'Yesterday', unread:false, source:'gmail'},
+  {id:6, from:'Riverside Elementary', initials:'RE', subject:'Early release – Friday pickup at 2:45', preview:'A reminder that this Friday is an early release day. Student dismissal begins at 2:45 PM.', time:'Yesterday', unread:false, source:'gmail'},
+];
+
+const MSGS_DATA = [
+  {id:1, channel:'#meridian-status', platform:'slack', sender:'Alex Torres', initials:'AT', text:'Just sent the Q2 status deck for your review. Flag anything before Thursday — Marcus will have questions.', time:'10:02 AM', unread:true, replies:3},
+  {id:2, channel:'Harlow & Co', platform:'teams', sender:'Priya Nair', initials:'PN', text:'Kickoff deck is uploaded to Teams. Can you confirm the agenda before Friday\'s call?', time:'9:55 AM', unread:true, replies:0},
+  {id:3, channel:'#meridian-eng', platform:'slack', sender:'Jamie Liu', initials:'JL', text:'Meridian staging is live. OAuth integration needs a re-auth before the client demo.', time:'9:30 AM', unread:false, replies:5},
+  {id:4, channel:'Life Admin', platform:'slack', sender:'Jordan R.', initials:'JR', text:'Reminder: Friday is early release day — need to leave by 2:30 for school pickup.', time:'9:00 AM', unread:false, replies:0},
+];
+
+const EVENTS_DATA = [
+  {id:1, title:'Morning Standup', start:'9:00 AM', end:'9:30 AM', dot:'#6366f1', attendees:['AT','JL','PN'], location:'Zoom'},
+  {id:2, title:'Meridian – Deliverable Review', start:'10:30 AM', end:'11:15 AM', dot:'#f59e0b', attendees:['AT','SC'], location:'Google Meet'},
+  {id:3, title:'Client Call – Harlow Kickoff', start:'1:00 PM', end:'1:45 PM', dot:'#16a34a', attendees:['LP','PN'], location:'Google Meet'},
+  {id:4, title:'Focus Block', start:'2:00 PM', end:'4:00 PM', dot:'#e4e4e7', attendees:[], location:''},
+  {id:5, title:'Meridian Status Sync', start:'4:00 PM', end:'4:30 PM', dot:'#ec4899', attendees:['AT','JL'], location:'Slack Huddle'},
+  {id:6, title:'🏫 School pickup – Maya', start:'2:45 PM', end:'3:00 PM', dot:'#d1d5db', attendees:[], location:'Riverside Elementary'},
+];
+
+const NOTIFS_DATA = [
+  {id:1, source:'slack', icon:'@', title:'Alex mentioned you in #meridian-status', body:'Can you confirm Q2 scope items before Thursday\'s call?', time:'10:05 AM', read:false},
+  {id:2, source:'gcal',  icon:'🏫', title:'Reminder: School pickup at 2:45 PM', body:'Riverside Elementary early release — leave by 2:30 to make it on time.', time:'9:50 AM', read:false},
+  {id:3, source:'gcal',  icon:'↗', title:'Client Call in 30 min', body:'Harlow Kickoff · Google Meet link in calendar', time:'9:30 AM', read:false},
+  {id:4, source:'gmail', icon:'✉', title:'New message from Marcus Webb', body:'"This looks great. Two small tweaks on page 4…"', time:'9:15 AM', read:true},
+  {id:5, source:'notion',icon:'💬', title:'New comment on Meridian Roadmap', body:'Marcus left a note: "Confirm Q2 scope before Thursday — exec review is Friday."', time:'9:30 AM', read:true},
+];
+
+const INTEGRATIONS_DATA = [
+  {id:1, name:'Gmail',       tool:'gmail',   connected:true,  lastSync:'2 min ago',  account:'jordan@riverastrategy.co', cat:'Email'},
+  {id:2, name:'Outlook',     tool:'outlook', connected:true,  lastSync:'5 min ago',  account:'jordan@meridiangroup.com', cat:'Email'},
+  {id:3, name:'Slack',       tool:'slack',   connected:true,  lastSync:'Just now',   account:'Meridian · Harlow · Personal', cat:'Messaging'},
+  {id:4, name:'Teams',       tool:'teams',   connected:true,  lastSync:'3 min ago',  account:'Enterprise Tenant', cat:'Messaging'},
+  {id:5, name:'Google Cal',  tool:'gcal',    connected:true,  lastSync:'1 min ago',  account:'jordan@riverastrategy.co', cat:'Calendar'},
+  {id:6, name:'Outlook Cal', tool:'outlook', connected:false, lastSync:'Never',      account:'', cat:'Calendar'},
+  {id:7, name:'HubSpot',     tool:'hubspot', connected:true,  lastSync:'18 min ago', account:'jordan@riverastrategy.co', cat:'CRM'},
+  {id:8, name:'Jira',        tool:'jira',    connected:false, lastSync:'Never',      account:'', cat:'Dev'},
+  {id:9, name:'Notion',      tool:'notion',  connected:true,  lastSync:'8 min ago',  account:'Jordan\'s Workspace', cat:'Docs'},
+  {id:10,name:'Linear',      tool:'linear',  connected:false, lastSync:'Never',      account:'', cat:'Docs'},
+];
+
+/* ─── MINI PANEL COMPONENTS (for dashboard 2×2) ──────────────────────── */
+function MiniInbox({ onOpen }) {
+  const unread = INBOX_DATA.filter(m=>m.unread).length;
+  return (
+    <Card style={{height:'100%'}}>
+      <CardHeader title="Inbox" icon="mail" count={unread} action onAction={onOpen} />
+      <div style={{flex:1, overflowY:'auto'}}>
+        {INBOX_DATA.slice(0,4).map(m=>(
+          <div key={m.id} onClick={onOpen} style={{display:'flex', gap:10, padding:'8px 14px', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer', background:m.unread?'#fafafa':'transparent'}}
+            onMouseEnter={e=>e.currentTarget.style.background='#fafafa'} onMouseLeave={e=>e.currentTarget.style.background=m.unread?'#fafafa':'transparent'}>
+            <div style={{position:'relative', flexShrink:0, paddingTop:1}}>
+              <Avatar initials={m.initials} color={m.unread?'#f0f0f0':'#f4f4f5'} textColor={m.unread?'#09090b':'#a1a1aa'} size={26} />
+              {m.unread && <div style={{position:'absolute', top:-1, right:-1, width:6, height:6, borderRadius:'50%', background:'#09090b', border:`1.5px solid ${T.surface}`}} />}
+            </div>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:6}}>
+                <span style={{fontSize:12.5, fontWeight:m.unread?700:500, color:T.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{m.from}</span>
+                <span style={{fontSize:10.5, color:T.textMuted, flexShrink:0}}>{m.time}</span>
+              </div>
+              <div style={{fontSize:11.5, color:m.unread?T.text:T.textMuted, fontWeight:m.unread?500:400, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1}}>{m.subject}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {INBOX_DATA.length > 4 && (
+        <div onClick={onOpen} style={{padding:'8px 14px', fontSize:11.5, color:T.textSec, cursor:'pointer', borderTop:`1px solid ${T.borderSubtle}`, textAlign:'center', fontWeight:500}}
+          onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.textSec}>
+          +{INBOX_DATA.length-4} more →
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function MiniMessages({ onOpen }) {
+  const unread = MSGS_DATA.filter(m=>m.unread).length;
+  return (
+    <Card style={{height:'100%'}}>
+      <CardHeader title="Messages" icon="chat" count={unread} action onAction={onOpen} />
+      <div style={{flex:1, overflowY:'auto'}}>
+        {MSGS_DATA.slice(0,4).map(m=>(
+          <div key={m.id} onClick={onOpen} style={{display:'flex', gap:10, padding:'8px 14px', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer', background:m.unread?'#fafafa':'transparent'}}
+            onMouseEnter={e=>e.currentTarget.style.background='#fafafa'} onMouseLeave={e=>e.currentTarget.style.background=m.unread?'#fafafa':'transparent'}>
+            <div style={{position:'relative', flexShrink:0, paddingTop:1}}>
+              <Avatar initials={m.initials} color={m.unread?'#f0f0f0':'#f4f4f5'} textColor={m.unread?'#09090b':'#a1a1aa'} size={26} />
+              {m.unread && <div style={{position:'absolute', top:-1, right:-1, width:6, height:6, borderRadius:'50%', background:'#09090b', border:`1.5px solid ${T.surface}`}} />}
+            </div>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:6}}>
+                <div style={{display:'flex', alignItems:'center', gap:5, overflow:'hidden'}}>
+                  <ToolBadge tool={m.platform==='slack'?'slack':'teams'} size={14} />
+                  <span style={{fontSize:12, fontWeight:m.unread?700:500, color:T.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{m.channel}</span>
+                </div>
+                <span style={{fontSize:10.5, color:T.textMuted, flexShrink:0}}>{m.time}</span>
+              </div>
+              <div style={{fontSize:11.5, color:T.textMuted, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1}}><span style={{fontWeight:500, color:T.textSec}}>{m.sender}:</span> {m.text}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function MiniCalendar({ onOpen }) {
+  const today = new Date();
+  const shortDay = ['S','M','T','W','T','F','S'];
+  return (
+    <Card style={{height:'100%'}}>
+      <CardHeader title="Calendar" icon="cal" count={EVENTS_DATA.length} action onAction={onOpen} />
+      {/* Week strip */}
+      <div style={{display:'flex', gap:3, padding:'8px 14px 6px', borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0}}>
+        {[-2,-1,0,1,2,3,4].map(offset=>{
+          const d = new Date(today); d.setDate(d.getDate()+offset);
+          const isToday = offset===0;
+          return (
+            <div key={offset} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', padding:'4px 2px', borderRadius:7, background:isToday?T.text:'transparent', cursor:'pointer'}}
+              onMouseEnter={e=>{if(!isToday)e.currentTarget.style.background=T.bg;}} onMouseLeave={e=>{if(!isToday)e.currentTarget.style.background='transparent';}}>
+              <span style={{fontSize:8.5, fontWeight:600, color:isToday?'rgba(255,255,255,.65)':T.textMuted, lineHeight:1.2}}>{shortDay[d.getDay()]}</span>
+              <span style={{fontSize:13, fontWeight:700, color:isToday?'#fff':T.text, lineHeight:1.4}}>{d.getDate()}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{flex:1, overflowY:'auto', padding:'6px 14px 8px'}}>
+        {EVENTS_DATA.map(ev=>(
+          <div key={ev.id} onClick={onOpen} style={{display:'flex', alignItems:'center', gap:9, padding:'6px 0', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer'}}
+            onMouseEnter={e=>e.currentTarget.style.opacity='0.75'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+            <div style={{width:3, height:28, borderRadius:2, background:ev.dot, flexShrink:0}} />
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:12.5, fontWeight:600, color:T.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{ev.title}</div>
+              <div style={{fontSize:11, color:T.textMuted}}>{ev.start}{ev.location && ` · ${ev.location}`}</div>
+            </div>
+            {ev.attendees.length > 0 && (
+              <div style={{display:'flex', marginLeft:'auto'}}>
+                {ev.attendees.slice(0,2).map((a,i)=>(
+                  <div key={i} style={{width:16, height:16, borderRadius:'50%', background:'#e4e4e7', color:T.textSec, fontSize:7, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', marginLeft:-3, border:`1.5px solid ${T.surface}`}}>{a}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function MiniNotifications({ onOpen }) {
+  const [notifs, setNotifs] = useState(NOTIFS_DATA);
+  const unread = notifs.filter(n=>!n.read).length;
+  return (
+    <Card style={{height:'100%'}}>
+      <div style={{display:'flex', alignItems:'center', padding:'12px 14px 10px', borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, gap:8}}>
+        <Icon name="bell" size={14} color={T.text} strokeWidth={2} />
+        <span style={{fontWeight:700, fontSize:13, color:T.text, flex:1}}>Notifications</span>
+        {unread > 0 && <span style={{fontSize:10.5, fontWeight:700, color:T.textMuted, background:T.bg, padding:'1px 6px', borderRadius:10, lineHeight:'16px'}}>{unread}</span>}
+        {unread > 0 && <button onClick={()=>setNotifs(ns=>ns.map(n=>({...n,read:true})))} style={{background:'none', border:'none', fontSize:11, color:T.textMuted, fontWeight:500, padding:'2px 0', cursor:'pointer'}}
+          onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.textMuted}>Mark all read</button>}
+      </div>
+      <div style={{flex:1, overflowY:'auto'}}>
+        {notifs.slice(0,4).map(n=>(
+          <div key={n.id} onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,read:true}:x))} style={{display:'flex', gap:10, padding:'8px 14px', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer', background:!n.read?'#fafafa':'transparent', opacity:n.read?0.6:1}}
+            onMouseEnter={e=>e.currentTarget.style.background='#fafafa'} onMouseLeave={e=>e.currentTarget.style.background=!n.read?'#fafafa':'transparent'}>
+            <div style={{display:'flex', alignItems:'center', gap:6, flexShrink:0}}>
+              {!n.read && <Dot size={5} color='#09090b' />}
+              {n.read && <div style={{width:5}} />}
+              <ToolBadge tool={n.source} size={20} />
+            </div>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:12, fontWeight:n.read?400:600, color:T.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{n.title}</div>
+              <div style={{fontSize:11, color:T.textMuted, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1}}>{n.body}</div>
+            </div>
+            <span style={{fontSize:10.5, color:T.textMuted, flexShrink:0, alignSelf:'flex-start', marginTop:1}}>{n.time}</span>
+          </div>
+        ))}
+        <div onClick={onOpen} style={{padding:'8px 14px', fontSize:11.5, color:T.textSec, cursor:'pointer', textAlign:'center', borderTop:`1px solid ${T.borderSubtle}`}}
+          onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.textSec}>
+          View all →
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ─── FULL PAGE VIEWS ─────────────────────────────────────────────────── */
+function InboxPage() {
+  const [selected, setSelected] = useState(null);
+  const [composing, setComposing] = useState(false);
+  const msg = INBOX_DATA.find(m=>m.id===selected);
+  return (
+    <div style={{display:'flex', gap:12, flex:1, minHeight:0}} className="fade-up">
+      {/* List */}
+      <Card style={{width:320, flexShrink:0, minHeight:0}}>
+        <div style={{padding:'12px 14px', borderBottom:`1px solid ${T.borderSubtle}`, display:'flex', alignItems:'center', gap:8, flexShrink:0}}>
+          <span style={{fontWeight:700, fontSize:13, color:T.text, flex:1}}>Inbox</span>
+          <span style={{fontSize:11, color:T.textMuted, background:T.bg, padding:'1px 6px', borderRadius:10}}>{INBOX_DATA.filter(m=>m.unread).length} unread</span>
+          <Btn label="Compose" variant="dark" small onClick={()=>{setComposing(true);setSelected(null);}} />
+        </div>
+        <div style={{flex:1, overflowY:'auto'}}>
+          {INBOX_DATA.map(m=>(
+            <div key={m.id} onClick={()=>{setSelected(m.id);setComposing(false);}} style={{display:'flex', gap:10, padding:'10px 14px', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer', background:selected===m.id?T.activeBg:m.unread?'#fafafa':'transparent'}}
+              onMouseEnter={e=>{if(selected!==m.id)e.currentTarget.style.background='#fafafa';}} onMouseLeave={e=>{e.currentTarget.style.background=selected===m.id?T.activeBg:m.unread?'#fafafa':'transparent';}}>
+              <div style={{position:'relative', flexShrink:0, paddingTop:2}}>
+                <Avatar initials={m.initials} color={m.unread?'#e4e4e7':'#f4f4f5'} textColor={m.unread?T.text:T.textMuted} size={28} />
+                {m.unread && <div style={{position:'absolute', top:0, right:-1, width:7, height:7, borderRadius:'50%', background:T.text, border:`1.5px solid ${T.surface}`}} />}
+              </div>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{display:'flex', justifyContent:'space-between', gap:6}}>
+                  <span style={{fontSize:13, fontWeight:m.unread?700:500, color:T.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:160}}>{m.from}</span>
+                  <span style={{fontSize:10.5, color:T.textMuted, flexShrink:0}}>{m.time}</span>
+                </div>
+                <div style={{fontSize:12, color:m.unread?T.text:T.textSec, fontWeight:m.unread?500:400, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1}}>{m.subject}</div>
+                <div style={{fontSize:11, color:T.textMuted, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1}}>{m.preview}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+      {/* Detail / Compose */}
+      <Card style={{flex:1, minHeight:0}}>
+        {composing ? (
+          <div style={{flex:1, display:'flex', flexDirection:'column', padding:20}} className="fade-up">
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
+              <span style={{fontWeight:700, fontSize:14, color:T.text}}>New message</span>
+              <button onClick={()=>setComposing(false)} style={{background:'none', border:'none', color:T.textMuted, cursor:'pointer', display:'flex'}}><Icon name="x" size={16} color={T.textMuted} /></button>
+            </div>
+            {[['To','marcus@clientco.com'],['CC',''],['Subject','Re: Proposal feedback – v3']].map(([l,v])=>(
+              <div key={l} style={{display:'flex', alignItems:'center', gap:12, borderBottom:`1px solid ${T.borderSubtle}`, padding:'8px 0'}}>
+                <span style={{fontSize:12, color:T.textMuted, width:48, fontWeight:500}}>{l}</span>
+                <input defaultValue={v} style={{flex:1, border:'none', fontSize:13.5, outline:'none', color:T.text}} />
+              </div>
+            ))}
+            <textarea defaultValue="Hi Marcus,&#10;&#10;Thanks for flagging — happy to walk through the timeline before you send to the exec team. 3pm today works.&#10;&#10;Best, Jordan" style={{flex:1, marginTop:16, border:'none', resize:'none', fontSize:13.5, outline:'none', lineHeight:1.65, color:T.text}} />
+            <div style={{display:'flex', gap:8, borderTop:`1px solid ${T.borderSubtle}`, paddingTop:12}}>
+              <Btn label="Send" icon="send" variant="dark" onClick={()=>setComposing(false)} />
+              <Btn label="Discard" variant="ghost" onClick={()=>setComposing(false)} />
+            </div>
+          </div>
+        ) : msg ? (
+          <div style={{flex:1, display:'flex', flexDirection:'column'}} className="slide-in">
+            <div style={{padding:'16px 20px', borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0}}>
+              <div style={{fontWeight:700, fontSize:15.5, color:T.text, marginBottom:10}}>{msg.subject}</div>
+              <div style={{display:'flex', alignItems:'center', gap:10}}>
+                <Avatar initials={msg.initials} color='#e4e4e7' textColor={T.textSec} size={32} />
+                <div>
+                  <div style={{fontWeight:600, fontSize:13, color:T.text}}>{msg.from}</div>
+                  <div style={{fontSize:11.5, color:T.textMuted}}>to me · {msg.time}</div>
+                </div>
+                <div style={{marginLeft:'auto', display:'flex', gap:6}}>
+                  <ToolBadge tool={msg.source} size={18} />
+                </div>
+              </div>
+            </div>
+            <div style={{flex:1, padding:'18px 20px', overflowY:'auto'}}>
+              <p style={{fontSize:14, color:T.text, lineHeight:1.75}}>{msg.preview} Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam.</p>
+              <p style={{fontSize:14, color:T.text, lineHeight:1.75, marginTop:14}}>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+              <p style={{fontSize:14, color:T.text, lineHeight:1.75, marginTop:14}}>Best regards,<br/>{msg.from}</p>
+            </div>
+            <div style={{padding:'12px 20px', borderTop:`1px solid ${T.borderSubtle}`, display:'flex', gap:8, flexShrink:0}}>
+              <Btn label="Reply" icon="reply" variant="dark" onClick={()=>{setComposing(true);}} />
+              <Btn label="Forward" variant="outline" />
+              <Btn label="Archive" variant="ghost" />
+            </div>
+          </div>
+        ) : (
+          <div style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:10}}>
+            <Icon name="mail" size={28} color={T.textMuted} />
+            <span style={{fontSize:13.5, color:T.textMuted}}>Select a message to read</span>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function MessagesPage() {
+  const [active, setActive] = useState(1);
+  const msg = MSGS_DATA.find(m=>m.id===active);
+  const thread = msg ? [
+    {sender:msg.sender, initials:msg.initials, text:msg.text, time:msg.time, mine:false},
+    {sender:'You', initials:'JR', text:'On it, reviewing now!', time:'10:08 AM', mine:true},
+    {sender:msg.sender, initials:msg.initials, text:'Thanks! Page 3 of the Notion doc has the timeline.', time:'10:10 AM', mine:false},
+  ] : [];
+  return (
+    <div style={{display:'flex', gap:12, flex:1, minHeight:0}} className="fade-up">
+      <Card style={{width:260, flexShrink:0, minHeight:0}}>
+        <div style={{padding:'12px 14px 8px', borderBottom:`1px solid ${T.borderSubtle}`, fontWeight:700, fontSize:13, flexShrink:0}}>Messages</div>
+        <div style={{flex:1, overflowY:'auto', padding:'8px 8px 4px'}}>
+          {['slack','teams'].map(platform=>(
+            <div key={platform}>
+              <div style={{display:'flex', alignItems:'center', gap:6, padding:'4px 6px 6px'}}>
+                <ToolBadge tool={platform} size={14} />
+                <span style={{fontSize:10.5, fontWeight:700, color:T.textMuted, letterSpacing:0.5, textTransform:'uppercase'}}>{platform==='slack'?'Slack':'Teams'}</span>
+              </div>
+              {MSGS_DATA.filter(m=>m.platform===platform).map(m=>(
+                <div key={m.id} onClick={()=>setActive(m.id)} style={{display:'flex', alignItems:'center', gap:8, padding:'6px 8px', borderRadius:T.radiusSm, cursor:'pointer', marginBottom:1, background:active===m.id?T.activeBg:'transparent'}}
+                  onMouseEnter={e=>{if(active!==m.id)e.currentTarget.style.background=T.hover;}} onMouseLeave={e=>{e.currentTarget.style.background=active===m.id?T.activeBg:'transparent';}}>
+                  <span style={{fontSize:12.5, color:T.textSec}}>#</span>
+                  <span style={{fontSize:13, fontWeight:active===m.id?600:400, color:active===m.id?T.text:T.textSec, flex:1}}>{m.channel.replace('#','')}</span>
+                  {m.unread && <Dot size={6} color={T.text} />}
+                </div>
+              ))}
+              <div style={{height:8}} />
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card style={{flex:1, minHeight:0}}>
+        {msg && <>
+          <div style={{padding:'12px 16px', borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, display:'flex', alignItems:'center', gap:8}}>
+            <ToolBadge tool={msg.platform==='slack'?'slack':'teams'} size={18} />
+            <span style={{fontWeight:700, fontSize:13.5, color:T.text}}>{msg.channel}</span>
+            <span style={{fontSize:11.5, color:T.textMuted, marginLeft:'auto'}}>{msg.replies > 0 ? `${msg.replies} replies` : ''}</span>
+          </div>
+          <div style={{flex:1, overflowY:'auto', padding:'16px', display:'flex', flexDirection:'column', gap:14}}>
+            {thread.map((t,i)=>(
+              <div key={i} style={{display:'flex', gap:10, flexDirection:t.mine?'row-reverse':'row'}}>
+                <Avatar initials={t.initials} color={t.mine?T.text:'#e4e4e7'} textColor={t.mine?'#fff':T.textSec} size={30} />
+                <div style={{maxWidth:'78%'}}>
+                  {!t.mine && <div style={{fontSize:11.5, fontWeight:600, color:T.textSec, marginBottom:4}}>{t.sender}</div>}
+                  <div style={{fontSize:13.5, color:t.mine?'#fff':T.text, lineHeight:1.55, background:t.mine?T.text:'#f4f4f5', padding:'9px 13px', borderRadius:10, display:'inline-block'}}>{t.text}</div>
+                  <div style={{fontSize:10.5, color:T.textMuted, marginTop:4, textAlign:t.mine?'right':'left'}}>{t.time}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{padding:'10px 16px', borderTop:`1px solid ${T.borderSubtle}`, flexShrink:0}}>
+            <div style={{display:'flex', gap:8, background:T.bg, border:`1px solid ${T.border}`, borderRadius:9, padding:'8px 12px', alignItems:'center'}}>
+              <input placeholder={`Message ${msg.channel}`} style={{flex:1, border:'none', background:'transparent', fontSize:13.5, outline:'none', color:T.text}} />
+              <Btn label="Send" variant="dark" small />
+            </div>
+          </div>
+        </>}
+      </Card>
+    </div>
+  );
+}
+
+function CalendarPage() {
+  const [view, setView] = useState('day');
+  const today = new Date();
+  const y=today.getFullYear(), mo=today.getMonth();
+  const firstDay = new Date(y,mo,1).getDay();
+  const daysInMonth = new Date(y,mo+1,0).getDate();
+  const shortDays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return (
+    <Card style={{flex:1, minHeight:0}} className="fade-up">
+      <div style={{padding:'12px 16px', borderBottom:`1px solid ${T.borderSubtle}`, display:'flex', alignItems:'center', gap:12, flexShrink:0}}>
+        <span style={{fontWeight:700, fontSize:13.5, color:T.text}}>{today.toLocaleString('default',{month:'long'})} {today.getFullYear()}</span>
+        <div style={{display:'flex', gap:2, background:T.bg, borderRadius:8, padding:2, border:`1px solid ${T.border}`}}>
+          {['day','week','month'].map(v=>(
+            <button key={v} onClick={()=>setView(v)} style={{padding:'4px 12px', border:'none', borderRadius:6, cursor:'pointer', fontWeight:600, fontSize:12, background:view===v?T.surface:T.bg, color:view===v?T.text:T.textMuted, boxShadow:view===v?T.shadow:'none', transition:'all 0.12s'}}>
+              {v.charAt(0).toUpperCase()+v.slice(1)}
+            </button>
+          ))}
+        </div>
+        <div style={{marginLeft:'auto'}}>
+          <Btn label="New event" icon="plus" variant="dark" small />
+        </div>
+      </div>
+      <div style={{flex:1, overflowY:'auto', padding:16}}>
+        {view==='day' && (
+          <div style={{display:'flex', flexDirection:'column', gap:8}}>
+            {EVENTS_DATA.map(ev=>(
+              <div key={ev.id} style={{display:'flex', gap:12, padding:'12px 14px', borderRadius:9, border:`1px solid ${T.border}`, background:T.surface, cursor:'pointer'}}
+                onMouseEnter={e=>e.currentTarget.style.background=T.hover} onMouseLeave={e=>e.currentTarget.style.background=T.surface}>
+                <div style={{width:4, borderRadius:2, background:ev.dot, flexShrink:0, alignSelf:'stretch', minHeight:32}} />
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700, fontSize:13.5, color:T.text}}>{ev.title}</div>
+                  <div style={{fontSize:12, color:T.textSec, marginTop:3}}>
+                    {ev.start} – {ev.end}
+                    {ev.location && <span style={{color:T.textMuted}}> · {ev.location}</span>}
+                  </div>
+                  {ev.attendees.length > 0 && (
+                    <div style={{display:'flex', alignItems:'center', gap:3, marginTop:7}}>
+                      {ev.attendees.map((a,i)=>(
+                        <div key={i} style={{width:20, height:20, borderRadius:'50%', background:'#e4e4e7', color:T.textSec, fontSize:8, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center'}}>{a}</div>
+                      ))}
+                      <span style={{fontSize:11, color:T.textMuted, marginLeft:4}}>{ev.attendees.length} attendee{ev.attendees.length>1?'s':''}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {view==='month' && (
+          <>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:6}}>
+              {shortDays.map(d=><div key={d} style={{textAlign:'center', fontSize:11.5, color:T.textMuted, fontWeight:600, padding:'2px 0'}}>{d}</div>)}
+            </div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3}}>
+              {Array(firstDay).fill(null).map((_,i)=><div key={'e'+i} style={{minHeight:68}} />)}
+              {Array(daysInMonth).fill(null).map((_,i)=>{
+                const d=i+1, isToday=d===today.getDate();
+                return (
+                  <div key={d} style={{minHeight:68, padding:6, border:`1px solid ${T.border}`, borderRadius:8, background:isToday?T.text:T.surface, cursor:'pointer'}}
+                    onMouseEnter={e=>{if(!isToday)e.currentTarget.style.background=T.hover;}} onMouseLeave={e=>{e.currentTarget.style.background=isToday?T.text:T.surface;}}>
+                    <div style={{fontSize:12.5, fontWeight:700, color:isToday?'#fff':T.text, marginBottom:4}}>{d}</div>
+                    {isToday && EVENTS_DATA.slice(0,2).map(ev=>(
+                      <div key={ev.id} style={{fontSize:9.5, background:ev.dot, color:'#fff', borderRadius:3, padding:'1px 4px', marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{ev.title}</div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+        {view==='week' && (
+          <div style={{fontSize:13, color:T.textSec, padding:8}}>Week view — drag to create, click to edit</div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function SearchPage() {
+  const [q, setQ] = useState('');
+  const [filter, setFilter] = useState('all');
+  const results = [
+    {type:'email',   icon:'mail',    title:'Re: Meridian Q1 Deliverables', from:'Sarah Chen', preview:'Files are in the Drive folder. Let me know if the format works…', time:'9:42 AM', source:'gmail'},
+    {type:'message', icon:'chat',    title:'#meridian-status — Q2 status deck', from:'Alex Torres', preview:'Just sent the Q2 status deck for your review…', time:'10:02 AM', source:'slack'},
+    {type:'event',   icon:'cal',     title:'Client Call – Harlow Kickoff', from:'Google Calendar', preview:'1:00 PM – 1:45 PM · Google Meet', time:'Today', source:'gcal'},
+    {type:'task',    icon:'check',   title:'SCRUM-72: Build notification center', from:'Jira', preview:'Assigned · In Progress · Sprint 4', time:'Yesterday', source:'jira'},
+    {type:'message', icon:'chat',    title:'Harlow & Co — Kickoff agenda', from:'Priya Nair', preview:'Kickoff deck uploaded to Teams. Confirm agenda before Friday\'s call…', time:'9:55 AM', source:'teams'},
+  ];
+  const shown = filter==='all' ? results : results.filter(r=>r.type===filter);
+  return (
+    <Card style={{flex:1, minHeight:0}} className="fade-up">
+      <div style={{padding:'14px 16px', borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0}}>
+        <div style={{display:'flex', gap:10, border:`1px solid ${T.border}`, borderRadius:9, padding:'9px 14px', alignItems:'center', marginBottom:12, background:T.surface}}>
+          <Icon name="search" size={16} color={T.textMuted} />
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search across email, messages, calendar, files, tasks…" style={{flex:1, border:'none', background:'transparent', fontSize:14, outline:'none', color:T.text}} />
+          <kbd style={{fontSize:11, color:T.textMuted, background:T.bg, border:`1px solid ${T.border}`, padding:'2px 6px', borderRadius:5, fontFamily:'inherit'}}>⌘K</kbd>
+        </div>
+        <div style={{display:'flex', gap:4}}>
+          {[['all','All'],['email','Email'],['message','Messages'],['event','Calendar'],['task','Tasks']].map(([v,l])=>(
+            <button key={v} onClick={()=>setFilter(v)} style={{padding:'4px 12px', border:`1px solid ${filter===v?T.text:T.border}`, borderRadius:20, cursor:'pointer', fontSize:12, fontWeight:filter===v?600:400, background:filter===v?T.text:T.surface, color:filter===v?'#fff':T.textSec, transition:'all 0.12s'}}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{flex:1, overflowY:'auto'}}>
+        {shown.map((r,i)=>(
+          <div key={i} style={{display:'flex', gap:12, padding:'12px 16px', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer', alignItems:'center'}}
+            onMouseEnter={e=>e.currentTarget.style.background=T.hover} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+            <div style={{width:34, height:34, borderRadius:9, background:T.bg, border:`1px solid ${T.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+              <Icon name={r.icon} size={15} color={T.textSec} />
+            </div>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontWeight:600, fontSize:13.5, color:T.text, marginBottom:2}}>{r.title}</div>
+              <div style={{fontSize:12, color:T.textSec}}><span style={{fontWeight:500}}>{r.from}</span> · {r.preview}</div>
+            </div>
+            <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end', gap:5, flexShrink:0}}>
+              <span style={{fontSize:11, color:T.textMuted}}>{r.time}</span>
+              <ToolBadge tool={r.source} size={16} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function ConnectionsPage() {
+  const [ints, setInts] = useState(INTEGRATIONS_DATA);
+  const toggle = id => setInts(prev=>prev.map(i=>i.id===id?{...i, connected:!i.connected, lastSync:!i.connected?'Just now':'Never'}:i));
+  const cats = [...new Set(ints.map(i=>i.cat))];
+  return (
+    <Card style={{flex:1, minHeight:0}} className="fade-up">
+      <div style={{padding:'12px 16px 10px', borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, display:'flex', alignItems:'center', gap:8}}>
+        <span style={{fontWeight:700, fontSize:13.5, color:T.text, flex:1}}>Connections</span>
+        <span style={{fontSize:12, color:T.textMuted}}>{ints.filter(i=>i.connected).length}/{ints.length} connected</span>
+        <div style={{width:80, height:4, background:T.bg, borderRadius:2, overflow:'hidden', border:`1px solid ${T.border}`}}>
+          <div style={{width:`${(ints.filter(i=>i.connected).length/ints.length)*100}%`, height:'100%', background:T.text, borderRadius:2}} />
+        </div>
+      </div>
+      <div style={{flex:1, overflowY:'auto', padding:'12px 16px'}}>
+        {cats.map(cat=>(
+          <div key={cat} style={{marginBottom:20}}>
+            <div style={{fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:0.8, textTransform:'uppercase', marginBottom:8}}>{cat}</div>
+            <div style={{display:'flex', flexDirection:'column', gap:6}}>
+              {ints.filter(i=>i.cat===cat).map(int=>(
+                <div key={int.id} style={{display:'flex', alignItems:'center', gap:12, padding:'11px 13px', border:`1px solid ${int.connected?'#d1fae5':T.border}`, borderRadius:9, background:int.connected?'#f0fdf4':T.surface}}>
+                  <ToolBadge tool={int.tool} size={28} />
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:600, fontSize:13.5, color:T.text}}>{int.name}</div>
+                    <div style={{fontSize:11.5, color:int.connected?'#16a34a':T.textMuted, marginTop:1}}>
+                      {int.connected ? `${int.account} · synced ${int.lastSync}` : 'Not connected'}
+                    </div>
+                  </div>
+                  <Btn label={int.connected?'Disconnect':'Connect'} variant={int.connected?'outline':'dark'} small onClick={()=>toggle(int.id)} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function SettingsPage() {
+  const [tab, setTab] = useState('profile');
+  const tabs = [{id:'profile',label:'Profile'},{id:'notifications',label:'Notifications'},{id:'appearance',label:'Appearance'},{id:'privacy',label:'Privacy'},{id:'accessibility',label:'Accessibility'}];
+  return (
+    <div style={{display:'flex', gap:12, flex:1, minHeight:0}} className="fade-up">
+      <Card style={{width:200, flexShrink:0}}>
+        <div style={{padding:'12px 14px 8px', borderBottom:`1px solid ${T.borderSubtle}`, fontWeight:700, fontSize:13, flexShrink:0}}>Settings</div>
+        <div style={{flex:1, overflowY:'auto', padding:'6px 8px'}}>
+          {tabs.map(t=>(
+            <div key={t.id} onClick={()=>setTab(t.id)} style={{padding:'7px 10px', borderRadius:T.radiusSm, cursor:'pointer', fontSize:13, fontWeight:tab===t.id?600:400, color:tab===t.id?T.text:T.textSec, background:tab===t.id?T.activeBg:'transparent', marginBottom:1}}
+              onMouseEnter={e=>{if(tab!==t.id)e.currentTarget.style.background=T.hover;}} onMouseLeave={e=>{e.currentTarget.style.background=tab===t.id?T.activeBg:'transparent';}}>
+              {t.label}
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card style={{flex:1, minHeight:0}}>
+        <div style={{padding:'12px 20px', borderBottom:`1px solid ${T.borderSubtle}`, fontWeight:700, fontSize:13.5, flexShrink:0}}>{tabs.find(t=>t.id===tab)?.label}</div>
+        <div style={{flex:1, overflowY:'auto', padding:20}}>
+          {tab==='profile' && (
+            <>
+              <div style={{display:'flex', alignItems:'center', gap:14, padding:16, background:T.bg, borderRadius:10, marginBottom:20, border:`1px solid ${T.border}`}}>
+                <Avatar initials="CH" color={T.text} textColor='#fff' size={52} />
+                <div><div style={{fontWeight:700, fontSize:15, color:T.text}}>Jordan Rivera</div><div style={{fontSize:12.5, color:T.textSec, marginTop:2}}>jordan@riverastrategy.co</div></div>
+                <Btn label="Change photo" variant="outline" small style={{marginLeft:'auto'}} />
+              </div>
+              {[['First name','Jordan'],['Last name','Rivera'],['Email','jordan@riverastrategy.co'],['Time zone','America/New_York (EST)']].map(([l,v])=>(
+                <div key={l} style={{marginBottom:14}}>
+                  <label style={{display:'block', fontSize:11.5, fontWeight:600, color:T.textSec, marginBottom:5, letterSpacing:0.3}}>{l.toUpperCase()}</label>
+                  <input defaultValue={v} style={{width:'100%', padding:'9px 12px', border:`1px solid ${T.border}`, borderRadius:8, fontSize:13.5, outline:'none', color:T.text, background:T.surface}} onFocus={e=>e.target.style.borderColor='#09090b'} onBlur={e=>e.target.style.borderColor=T.border} />
+                </div>
+              ))}
+              <Btn label="Save changes" variant="dark" />
+            </>
+          )}
+          {tab!=='profile' && <div style={{fontSize:13.5, color:T.textMuted, paddingTop:8}}>{tabs.find(t=>t.id===tab)?.label} settings coming soon.</div>}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function BillingPage() {
+  return (
+    <div style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:12}} className="fade-up">
+      <Card>
+        <div style={{padding:'16px 20px', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+          <div>
+            <div style={{fontSize:11, color:T.textMuted, fontWeight:600, letterSpacing:0.5, textTransform:'uppercase', marginBottom:4}}>Current plan</div>
+            <div style={{display:'flex', alignItems:'baseline', gap:10}}>
+              <span style={{fontSize:22, fontWeight:800, color:T.text}}>Pro</span>
+              <span style={{fontSize:11.5, fontWeight:600, color:'#16a34a', background:'#dcfce7', padding:'2px 8px', borderRadius:10}}>Active</span>
+            </div>
+            <div style={{fontSize:13, color:T.textSec, marginTop:3}}>$10/month · Renews March 1, 2026</div>
+          </div>
+          <Btn label="Change plan" variant="outline" />
+        </div>
+      </Card>
+      <Card>
+        <CardHeader title="Payment method" />
+        <div style={{padding:'12px 16px'}}>
+          <div style={{display:'flex', alignItems:'center', gap:12, padding:'11px 13px', border:`1px solid ${T.border}`, borderRadius:9}}>
+            <div style={{width:40, height:26, borderRadius:5, background:'#1A1F71', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:10.5, fontWeight:800, letterSpacing:0.5}}>VISA</div>
+            <div><div style={{fontWeight:600, fontSize:13}}>Visa ending 4242</div><div style={{fontSize:11.5, color:T.textMuted}}>Expires 08/2027</div></div>
+            <Btn label="Update" variant="outline" small style={{marginLeft:'auto'}} />
+          </div>
+        </div>
+      </Card>
+      <Card>
+        <CardHeader title="Billing history" />
+        <div style={{padding:'0 16px 12px'}}>
+          {[['Feb 1, 2026','Pro Plan – February','$10.00'],['Jan 1, 2026','Pro Plan – January','$10.00'],['Dec 1, 2025','Pro Plan – December','$10.00']].map(([d,desc,amt])=>(
+            <div key={d} style={{display:'flex', alignItems:'center', gap:12, padding:'10px 0', borderBottom:`1px solid ${T.borderSubtle}`}}>
+              <span style={{fontSize:13, color:T.textSec, width:110}}>{d}</span>
+              <span style={{fontSize:13, color:T.text, flex:1}}>{desc}</span>
+              <span style={{fontSize:13, fontWeight:600, color:T.text}}>{amt}</span>
+              <span style={{fontSize:11, fontWeight:600, color:'#16a34a', background:'#dcfce7', padding:'2px 8px', borderRadius:6}}>Paid</span>
+              <button style={{background:'none', border:'none', fontSize:12, color:T.textSec, fontWeight:500, cursor:'pointer'}}
+                onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.textSec}>Download</button>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function HelpPage() {
+  const [sec, setSec] = useState('support');
+  const items = [{id:'support',label:'Contact support'},{id:'sales',label:'Contact sales'},{id:'terms',label:'Terms & conditions'},{id:'privacy',label:'Privacy policy'},{id:'data',label:'Data export'},{id:'about',label:'About this app'}];
+  return (
+    <div style={{display:'flex', gap:12, flex:1, minHeight:0}} className="fade-up">
+      <Card style={{width:200, flexShrink:0}}>
+        <div style={{padding:'12px 14px 8px', borderBottom:`1px solid ${T.borderSubtle}`, fontWeight:700, fontSize:13, flexShrink:0}}>Help & legal</div>
+        <div style={{flex:1, overflowY:'auto', padding:'6px 8px'}}>
+          {items.map(t=>(
+            <div key={t.id} onClick={()=>setSec(t.id)} style={{padding:'7px 10px', borderRadius:T.radiusSm, cursor:'pointer', fontSize:13, fontWeight:sec===t.id?600:400, color:sec===t.id?T.text:T.textSec, background:sec===t.id?T.activeBg:'transparent', marginBottom:1}}
+              onMouseEnter={e=>{if(sec!==t.id)e.currentTarget.style.background=T.hover;}} onMouseLeave={e=>{e.currentTarget.style.background=sec===t.id?T.activeBg:'transparent';}}>
+              {t.label}
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card style={{flex:1, minHeight:0}}>
+        <div style={{padding:'12px 20px', borderBottom:`1px solid ${T.borderSubtle}`, fontWeight:700, fontSize:13.5, flexShrink:0}}>{items.find(i=>i.id===sec)?.label}</div>
+        <div style={{flex:1, overflowY:'auto', padding:20}}>
+          {sec==='support' && <>{[['Subject','Issue with calendar sync'],['Category','Technical issue']].map(([l,v])=><div key={l} style={{marginBottom:14}}><label style={{display:'block',fontSize:11.5,fontWeight:600,color:T.textSec,marginBottom:5,letterSpacing:0.3}}>{l.toUpperCase()}</label><input defaultValue={v} style={{width:'100%',padding:'9px 12px',border:`1px solid ${T.border}`,borderRadius:8,fontSize:13.5,outline:'none'}} /></div>)}<div style={{marginBottom:14}}><label style={{display:'block',fontSize:11.5,fontWeight:600,color:T.textSec,marginBottom:5,letterSpacing:0.3}}>DESCRIPTION</label><textarea rows={5} placeholder="Describe your issue…" style={{width:'100%',padding:'9px 12px',border:`1px solid ${T.border}`,borderRadius:8,fontSize:13.5,outline:'none',resize:'vertical'}} /></div><Btn label="Submit ticket" variant="dark" /></>}
+          {sec==='data' && <><div style={{fontSize:14, color:T.textSec, lineHeight:1.7, marginBottom:16}}>Download a full export of your workspace data including emails, messages, calendar events, and settings.</div><Btn label="Request export" variant="dark" /></>}
+          {(sec==='terms'||sec==='privacy'||sec==='about') && <div style={{fontSize:14, color:T.textSec, lineHeight:1.75}}>{sec==='about'?'Workspace v0.9.0 (Beta) — a unified workspace that connects your tools. Built for focus.':sec==='terms'?'By using this app, you agree to these terms. You retain ownership of your data. We do not sell your data to third parties.':'This app accesses tool data only with your explicit authorization via OAuth. Your data is encrypted at rest and in transit.'}</div>}
+          {sec==='sales' && <>{[['Name','Jordan Rivera'],['Company',''],['Team size','']].map(([l,v])=><div key={l} style={{marginBottom:14}}><label style={{display:'block',fontSize:11.5,fontWeight:600,color:T.textSec,marginBottom:5,letterSpacing:0.3}}>{l.toUpperCase()}</label><input defaultValue={v} style={{width:'100%',padding:'9px 12px',border:`1px solid ${T.border}`,borderRadius:8,fontSize:13.5,outline:'none'}} /></div>)}<Btn label="Get in touch" variant="dark" /></>}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ─── HOME DASHBOARD ─────────────────────────────────────────────────── */
+function HomePage({ onNav }) {
+  const unreadEmail = INBOX_DATA.filter(m=>m.unread).length;
+  const unreadMsg   = MSGS_DATA.filter(m=>m.unread).length;
+  const unreadNotif = NOTIFS_DATA.filter(n=>!n.read).length;
+  return (
+    <div style={{display:'flex', flexDirection:'column', flex:1, gap:12, minHeight:0}} className="fade-up">
+      {/* Status strip */}
+      <div style={{display:'flex', gap:8, flexShrink:0}}>
+        {[
+          {icon:'mail',  label:`${unreadEmail} unread`,    sub:'Email',         nav:'inbox',    alert:unreadEmail>0},
+          {icon:'chat',  label:`${unreadMsg} unread`,      sub:'Messages',      nav:'messages', alert:unreadMsg>0},
+          {icon:'cal',   label:`${EVENTS_DATA.length} events`, sub:'Today',     nav:'calendar', alert:false},
+          {icon:'bell',  label:`${unreadNotif} new`,       sub:'Notifications', nav:'home',     alert:unreadNotif>0},
+        ].map(s=>(
+          <button key={s.nav+s.sub} onClick={()=>onNav(s.nav)} style={{flex:1, display:'flex', alignItems:'center', gap:9, padding:'9px 14px', border:`1px solid ${s.alert?'#d4d4d8':T.border}`, borderRadius:9, background:T.surface, cursor:'pointer', boxShadow:T.shadow, transition:'all 0.12s'}}
+            onMouseEnter={e=>{e.currentTarget.style.boxShadow=T.shadowMd;}} onMouseLeave={e=>{e.currentTarget.style.boxShadow=T.shadow;}}>
+            <div style={{width:30, height:30, borderRadius:8, background:s.alert?T.text:T.bg, display:'flex', alignItems:'center', justifyContent:'center', border:`1px solid ${s.alert?T.text:T.border}`, flexShrink:0}}>
+              <Icon name={s.icon} size={14} color={s.alert?'#fff':T.textSec} strokeWidth={1.8} />
+            </div>
+            <div>
+              <div style={{fontSize:13, fontWeight:700, color:T.text, lineHeight:1.2}}>{s.label}</div>
+              <div style={{fontSize:11, color:T.textMuted, marginTop:1}}>{s.sub}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+      {/* 2×2 grid */}
+      <div style={{flex:1, display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:12, minHeight:0}}>
+        <MiniInbox    onOpen={()=>onNav('inbox')} />
+        <MiniMessages onOpen={()=>onNav('messages')} />
+        <MiniCalendar onOpen={()=>onNav('calendar')} />
+        <MiniNotifications onOpen={()=>onNav('home')} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── SIDEBAR ────────────────────────────────────────────────────────── */
+const NAV_ITEMS = [
+  {id:'home',        icon:'home',   label:'Home',        group:'main'},
+  {id:'inbox',       icon:'mail',   label:'Inbox',       group:'main', badge:()=>INBOX_DATA.filter(m=>m.unread).length},
+  {id:'messages',    icon:'chat',   label:'Messages',    group:'main', badge:()=>MSGS_DATA.filter(m=>m.unread).length},
+  {id:'calendar',    icon:'cal',    label:'Calendar',    group:'main'},
+  {id:'search',      icon:'search', label:'Search',      group:'tools'},
+  {id:'connections', icon:'plug',   label:'Connections', group:'tools', badge:()=>INTEGRATIONS_DATA.filter(i=>!i.connected).length},
+  {id:'settings',    icon:'gear',   label:'Settings',    group:'bottom'},
+  {id:'billing',     icon:'card',   label:'Billing',     group:'bottom'},
+  {id:'help',        icon:'help',   label:'Help',        group:'bottom'},
+];
+
+function Sidebar({ active, onNav, expanded, onToggle }) {
+  const W = expanded ? 200 : 48;
+
+  const NavItem = ({item}) => {
+    const isActive = active===item.id;
+    const count = item.badge ? item.badge() : 0;
+    return (
+      <div onClick={()=>onNav(item.id)} title={!expanded ? item.label : ''} style={{position:'relative', display:'flex', alignItems:'center', gap:10, padding: expanded ? '7px 10px' : '7px', marginBottom:2, borderRadius:T.radiusSm, cursor:'pointer', background:isActive?T.activeBg:'transparent', justifyContent: expanded?'flex-start':'center', transition:'background 0.1s'}}
+        onMouseEnter={e=>{if(!isActive)e.currentTarget.style.background=T.hover;}}
+        onMouseLeave={e=>{e.currentTarget.style.background=isActive?T.activeBg:'transparent';}}>
+        <Icon name={item.icon} size={16} color={isActive?T.iconActive:T.iconInactive} strokeWidth={isActive?2:1.6} />
+        {expanded && <span style={{fontSize:13, fontWeight:isActive?600:400, color:isActive?T.text:T.textSec, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.label}</span>}
+        {count > 0 && expanded && <span style={{fontSize:10, fontWeight:700, color:T.textMuted, background:T.bg, padding:'1px 5px', borderRadius:8, lineHeight:'15px', border:`1px solid ${T.border}`}}>{count}</span>}
+        {count > 0 && !expanded && <div style={{position:'absolute', top:5, right:5, width:6, height:6, borderRadius:'50%', background:'#09090b', border:`1.5px solid ${T.surface}`}} />}
+      </div>
+    );
+  };
+
+  const main   = NAV_ITEMS.filter(n=>n.group==='main');
+  const tools  = NAV_ITEMS.filter(n=>n.group==='tools');
+  const bottom = NAV_ITEMS.filter(n=>n.group==='bottom');
+
+  return (
+    <div style={{width:W, background:T.surface, borderRight:`1px solid ${T.border}`, display:'flex', flexDirection:'column', flexShrink:0, transition:'width 0.18s ease', overflow:'hidden'}}>
+      {/* Logo */}
+      <div style={{height:50, display:'flex', alignItems:'center', justifyContent: expanded ? 'space-between':'center', padding: expanded?'0 12px':'0', borderBottom:`1px solid ${T.border}`, flexShrink:0}}>
+        <div style={{display:'flex', alignItems:'center', gap:8, overflow:'hidden'}}>
+          <div style={{width:24, height:24, borderRadius:6, background:T.text, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+            <span style={{color:'#fff', fontSize:12, fontWeight:900, letterSpacing:'-0.05em'}}>A</span>
+          </div>
+          {expanded && <span style={{fontWeight:800, fontSize:14, color:T.text, whiteSpace:'nowrap', letterSpacing:'-0.03em'}}>Workspace</span>}
+        </div>
+        <button onClick={onToggle} style={{background:'none', border:`1px solid ${T.border}`, borderRadius:5, width:20, height:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:T.textMuted, flexShrink:0, marginLeft:expanded?0:0}}
+          onMouseEnter={e=>e.currentTarget.style.background=T.bg} onMouseLeave={e=>e.currentTarget.style.background='none'}>
+          <Icon name="chevron" size={11} color={T.textMuted} strokeWidth={2.5} style={{transform: expanded?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.18s'}} />
+        </button>
+      </div>
+      {/* Main nav */}
+      <div style={{flex:1, overflowY:'auto', padding: expanded?'10px 8px':'10px 6px'}}>
+        {expanded && <div style={{fontSize:9.5, fontWeight:700, color:T.textMuted, letterSpacing:0.9, padding:'0 6px 5px', textTransform:'uppercase'}}>Main</div>}
+        {main.map(item=><NavItem key={item.id} item={item} />)}
+        {expanded && <div style={{height:4}} />}
+        <div style={{height:1, background:T.border, margin: expanded?'8px 6px':'8px 4px'}} />
+        {expanded && <div style={{fontSize:9.5, fontWeight:700, color:T.textMuted, letterSpacing:0.9, padding:'4px 6px 5px', textTransform:'uppercase'}}>Tools</div>}
+        {tools.map(item=><NavItem key={item.id} item={item} />)}
+      </div>
+      {/* Bottom */}
+      <div style={{padding: expanded?'8px':'8px 6px', borderTop:`1px solid ${T.border}`, flexShrink:0}}>
+        {bottom.map(item=><NavItem key={item.id} item={item} />)}
+        <div style={{height:4}} />
+        <div style={{display:'flex', alignItems:'center', gap:9, padding: expanded?'6px 10px':'6px', borderRadius:T.radiusSm, cursor:'pointer'}}
+          onMouseEnter={e=>e.currentTarget.style.background=T.hover} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+          <Avatar initials="CH" color={T.text} textColor='#fff' size={24} />
+          {expanded && <div style={{overflow:'hidden'}}><div style={{fontSize:12, fontWeight:700, color:T.text, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Jordan Rivera</div><div style={{fontSize:10.5, color:T.textMuted}}>Pro plan</div></div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── TOP BAR ─────────────────────────────────────────────────────────── */
+const PAGE_LABELS = {home:'Home',inbox:'Inbox',messages:'Messages',calendar:'Calendar',search:'Search',connections:'Connections',settings:'Settings',billing:'Billing',help:'Help & legal'};
+
+function TopBar({ active, onNav }) {
+  const [search, setSearch] = useState('');
+  return (
+    <div style={{height:50, background:T.surface, borderBottom:`1px solid ${T.border}`, display:'flex', alignItems:'center', padding:'0 16px', gap:14, flexShrink:0}}>
+      <span style={{fontWeight:700, fontSize:14, color:T.text, minWidth:80}}>{PAGE_LABELS[active]}</span>
+      <div onClick={()=>onNav('search')} style={{flex:1, maxWidth:380, display:'flex', alignItems:'center', gap:8, border:`1px solid ${T.border}`, borderRadius:8, padding:'6px 11px', cursor:'pointer', background:T.surface}}
+        onMouseEnter={e=>e.currentTarget.style.background=T.hover} onMouseLeave={e=>e.currentTarget.style.background=T.surface}>
+        <Icon name="search" size={13} color={T.textMuted} />
+        <span style={{fontSize:13, color:T.textMuted}}>Search everything…</span>
+        <kbd style={{marginLeft:'auto', fontSize:10.5, color:T.textMuted, background:T.bg, border:`1px solid ${T.border}`, padding:'2px 6px', borderRadius:5}}>⌘K</kbd>
+      </div>
+      <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:8}}>
+        <Btn label="+ Create" variant="dark" small onClick={()=>{}} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── APP ROOT ───────────────────────────────────────────────────────── */
+function App() {
+  const [active, setActive]     = useState('home');
+  const [expanded, setExpanded] = useState(true);
+  const nav = useCallback(id => setActive(id), []);
+  return (
+    <div style={{display:'flex', height:'100vh', overflow:'hidden', background:T.bg}}>
+      <Sidebar active={active} onNav={nav} expanded={expanded} onToggle={()=>setExpanded(e=>!e)} />
+      <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0}}>
+        <TopBar active={active} onNav={nav} />
+        <div style={{flex:1, overflow:'hidden', padding:'14px 16px', display:'flex', flexDirection:'column', minHeight:0}}>
+          {active==='home'        && <HomePage onNav={nav} />}
+          {active==='inbox'       && <InboxPage />}
+          {active==='messages'    && <MessagesPage />}
+          {active==='calendar'    && <CalendarPage />}
+          {active==='search'      && <SearchPage />}
+          {active==='connections' && <ConnectionsPage />}
+          {active==='settings'    && <SettingsPage />}
+          {active==='billing'     && <BillingPage />}
+          {active==='help'        && <HelpPage />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
