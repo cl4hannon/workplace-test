@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ACinch — Epic 5 Original</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f6f8;
+      color: #1a1a2e;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── TOP BAR ─── */
+    .topbar {
+      background: #1e3a5f;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 52px;
+      flex-shrink: 0;
+    }
+    .topbar .logo {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .topbar .logo span { color: #4fc3f7; }
+    .topbar .user-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .topbar .user-area .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: #4fc3f7;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600; color: #1e3a5f;
+    }
+    .topbar .user-area .name { font-size: 14px; }
+    .theme-toggle-btn {
+      background: rgba(255,255,255,0.15);
+      border: none; border-radius: 6px;
+      color: #fff; font-size: 13px;
+      padding: 5px 10px; cursor: pointer;
+    }
+    .theme-toggle-btn:hover { background: rgba(255,255,255,0.25); }
+
+    /* ─── LAYOUT ─── */
+    .shell {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar {
+      width: 220px;
+      background: #fff;
+      border-right: 1px solid #e0e4ea;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar-section-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #8a94a6;
+      padding: 16px 16px 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      font-size: 14px;
+      color: #4a5568;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-item:hover { background: #f0f4ff; color: #1e3a5f; }
+    .nav-item.active {
+      background: #ebf3fd;
+      color: #1e3a5f;
+      border-left-color: #1e6fcf;
+      font-weight: 600;
+    }
+    .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+    .nav-badge {
+      margin-left: auto;
+      background: #e53e3e;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 1px 6px;
+    }
+
+    /* ─── MAIN CONTENT ─── */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .panel-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+    .panel-subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 20px;
+    }
+
+    /* ─── CARDS ─── */
+    .card {
+      background: #fff;
+      border: 1px solid #e0e4ea;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+    .card-meta {
+      font-size: 12px;
+      color: #8a94a6;
+    }
+
+    /* ─── DASHBOARD ─── */
+    .priority-list { list-style: none; }
+    .priority-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f2f5;
+    }
+    .priority-list li:last-child { border-bottom: none; }
+    .priority-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+    .dot-high { background: #e53e3e; }
+    .dot-med  { background: #ed8936; }
+    .dot-low  { background: #48bb78; }
+    .priority-text { font-size: 14px; color: #2d3748; }
+    .priority-source {
+      font-size: 12px; color: #8a94a6; margin-top: 2px;
+    }
+
+    .stat-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-card {
+      flex: 1;
+      background: #f0f6ff;
+      border: 1px solid #c3dafe;
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .stat-card .num {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e6fcf;
+    }
+    .stat-card .lbl {
+      font-size: 12px;
+      color: #4a5568;
+      margin-top: 2px;
+    }
+
+    /* ─── ACTIVITY FEED ─── */
+    .feed-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f2f5;
+    }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600;
+      flex-shrink: 0;
+    }
+    .feed-body { flex: 1; }
+    .feed-actor { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+    .feed-action { font-size: 14px; color: #4a5568; }
+    .feed-time { font-size: 12px; color: #8a94a6; margin-top: 3px; }
+    .feed-source-tag {
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 4px;
+      padding: 1px 6px;
+      margin-left: 6px;
+    }
+    .tag-slack   { background: #f0e6ff; color: #7c3aed; }
+    .tag-gmail   { background: #fee2e2; color: #c53030; }
+    .tag-calendar{ background: #e6ffed; color: #2f855a; }
+    .tag-notion  { background: #f5f5f5; color: #4a4a4a; }
+    .tag-linear  { background: #e0f0ff; color: #1e6fcf; }
+
+    /* ─── NOTIFICATIONS ─── */
+    .notif-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f2f5;
+    }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .notif-body { flex: 1; }
+    .notif-title { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+    .notif-desc  { font-size: 13px; color: #4a5568; margin-top: 2px; }
+    .notif-time  { font-size: 12px; color: #8a94a6; margin-top: 3px; }
+    .notif-unread .notif-title::before {
+      content: '';
+      display: inline-block;
+      width: 7px; height: 7px;
+      background: #e53e3e;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    /* ─── FILTER ─── */
+    .filter-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid #d0d7e3;
+      background: #fff;
+      font-size: 13px;
+      color: #4a5568;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip.active {
+      border-color: #1e6fcf;
+      background: #ebf3fd;
+      color: #1e6fcf;
+      font-weight: 600;
+    }
+    .chip:hover:not(.active) { border-color: #a0aec0; background: #f7f9fc; }
+    .filtered-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f2f5;
+    }
+    .filtered-item:last-child { border-bottom: none; }
+    .filtered-source-badge {
+      font-size: 11px; font-weight: 600;
+      border-radius: 4px;
+      padding: 2px 7px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .filtered-text { font-size: 14px; color: #2d3748; }
+    .filtered-sub  { font-size: 12px; color: #8a94a6; margin-top: 2px; }
+
+    /* ─── DARK MODE ─── */
+    body.dark {
+      background: #0d1117;
+      color: #e6edf3;
+    }
+    body.dark .sidebar {
+      background: #161b22;
+      border-color: #30363d;
+    }
+    body.dark .sidebar-section-label { color: #6e7681; }
+    body.dark .nav-item { color: #8b949e; }
+    body.dark .nav-item:hover { background: #1c2128; color: #e6edf3; }
+    body.dark .nav-item.active {
+      background: #1c2e44;
+      color: #58a6ff;
+      border-left-color: #58a6ff;
+    }
+    body.dark .topbar { background: #161b22; border-bottom: 1px solid #30363d; }
+    body.dark .card {
+      background: #161b22;
+      border-color: #30363d;
+    }
+    body.dark .card-title { color: #e6edf3; }
+    body.dark .panel-title { color: #e6edf3; }
+    body.dark .panel-subtitle { color: #6e7681; }
+    body.dark .priority-text { color: #c9d1d9; }
+    body.dark .feed-actor { color: #e6edf3; }
+    body.dark .feed-action { color: #8b949e; }
+    body.dark .notif-title { color: #e6edf3; }
+    body.dark .notif-desc  { color: #8b949e; }
+    body.dark .filtered-text { color: #c9d1d9; }
+    body.dark .stat-card {
+      background: #1c2e44;
+      border-color: #1e4976;
+    }
+    body.dark .stat-card .num { color: #58a6ff; }
+    body.dark .stat-card .lbl { color: #8b949e; }
+    body.dark .priority-list li { border-color: #21262d; }
+    body.dark .feed-item      { border-color: #21262d; }
+    body.dark .notif-item     { border-color: #21262d; }
+    body.dark .filtered-item  { border-color: #21262d; }
+    body.dark .chip {
+      background: #161b22;
+      border-color: #30363d;
+      color: #8b949e;
+    }
+    body.dark .chip.active {
+      background: #1c2e44;
+      border-color: #58a6ff;
+      color: #58a6ff;
+    }
+    body.dark .chip:hover:not(.active) { background: #1c2128; border-color: #484f58; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="logo">AC<span>inch</span></div>
+    <div class="user-area">
+      <button class="theme-toggle-btn" onclick="toggleTheme()">🌙 Dark Mode</button>
+      <div class="avatar">JR</div>
+      <span class="name">Jamie R.</span>
+    </div>
+  </header>
+
+  <!-- SHELL -->
+  <div class="shell">
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-section-label">Workspace</div>
+
+      <div class="nav-item active" data-panel="dashboard" onclick="switchPanel(this)">
+        <span class="icon">🏠</span> What Matters Today
+      </div>
+      <div class="nav-item" data-panel="activity" onclick="switchPanel(this)">
+        <span class="icon">⚡</span> Recent Activity
+        <span class="nav-badge">8</span>
+      </div>
+      <div class="nav-item" data-panel="notifications" onclick="switchPanel(this)">
+        <span class="icon">🔔</span> Notifications
+        <span class="nav-badge">5</span>
+      </div>
+      <div class="nav-item" data-panel="filter" onclick="switchPanel(this)">
+        <span class="icon">🔍</span> Filter by App
+      </div>
+
+      <div class="sidebar-section-label" style="margin-top:12px;">Settings</div>
+      <div class="nav-item" data-panel="theme" onclick="switchPanel(this)">
+        <span class="icon">🎨</span> Display & Theme
+      </div>
+    </nav>
+
+    <!-- MAIN PANELS -->
+    <main class="main">
+
+      <!-- ── DASHBOARD ── -->
+      <div class="panel active" id="panel-dashboard">
+        <div class="panel-title">What Matters Today</div>
+        <div class="panel-subtitle">Monday, Feb 23 · Your unified view across all tools</div>
+
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="num">4</div>
+            <div class="lbl">Unread emails</div>
+          </div>
+          <div class="stat-card">
+            <div class="num">3</div>
+            <div class="lbl">Slack mentions</div>
+          </div>
+          <div class="stat-card">
+            <div class="num">2</div>
+            <div class="lbl">Meetings today</div>
+          </div>
+          <div class="stat-card">
+            <div class="num">6</div>
+            <div class="lbl">Open tasks</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⚠️ Priority Items</div>
+            <div class="card-meta">Updated just now</div>
+          </div>
+          <ul class="priority-list">
+            <li>
+              <div class="priority-dot dot-high"></div>
+              <div>
+                <div class="priority-text">Q1 budget approval needed — Marcus is waiting on your sign-off</div>
+                <div class="priority-source">Gmail · 35 min ago</div>
+              </div>
+            </li>
+            <li>
+              <div class="priority-dot dot-high"></div>
+              <div>
+                <div class="priority-text">Design review meeting starts in 25 minutes</div>
+                <div class="priority-source">Calendar · today at 10:00 AM</div>
+              </div>
+            </li>
+            <li>
+              <div class="priority-dot dot-med"></div>
+              <div>
+                <div class="priority-text">@mention from Sarah: "Can you review the new onboarding copy?"</div>
+                <div class="priority-source">Slack · #product · 1 hr ago</div>
+              </div>
+            </li>
+            <li>
+              <div class="priority-dot dot-med"></div>
+              <div>
+                <div class="priority-text">Linear ticket ACN-112 blocked — needs your input to unblock</div>
+                <div class="priority-source">Linear · 2 hrs ago</div>
+              </div>
+            </li>
+            <li>
+              <div class="priority-dot dot-low"></div>
+              <div>
+                <div class="priority-text">Weekly status doc ready for review in Notion</div>
+                <div class="priority-source">Notion · yesterday</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📅 Today's Schedule</div>
+          </div>
+          <ul class="priority-list">
+            <li>
+              <div class="priority-dot dot-med"></div>
+              <div>
+                <div class="priority-text">Design Review — with Alex, Sam, Taylor</div>
+                <div class="priority-source">10:00 AM – 11:00 AM · Google Meet</div>
+              </div>
+            </li>
+            <li>
+              <div class="priority-dot dot-low"></div>
+              <div>
+                <div class="priority-text">1:1 with Marcus</div>
+                <div class="priority-source">2:00 PM – 2:30 PM · Zoom</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ── ACTIVITY FEED ── -->
+      <div class="panel" id="panel-activity">
+        <div class="panel-title">Recent Activity</div>
+        <div class="panel-subtitle">Everything that happened across your tools — newest first</div>
+
+        <div class="card">
+          <div class="feed-item">
+            <div class="feed-avatar" style="background:#f0e6ff;color:#7c3aed;">SL</div>
+            <div class="feed-body">
+              <div><span class="feed-actor">Sarah L.</span>
+                <span class="feed-action"> mentioned you in #product</span>
+                <span class="feed-source-tag tag-slack">Slack</span>
+              </div>
+              <div class="priority-source" style="font-size:13px;color:#4a5568;margin-top:4px;">"Can you review the new onboarding copy before EOD?"</div>
+              <div class="feed-time">1 hour ago</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-avatar" style="background:#fee2e2;color:#c53030;">MK</div>
+            <div class="feed-body">
+              <div><span class="feed-actor">Marcus K.</span>
+                <span class="feed-action"> sent you an email</span>
+                <span class="feed-source-tag tag-gmail">Gmail</span>
+              </div>
+              <div class="priority-source" style="font-size:13px;color:#4a5568;margin-top:4px;">Re: Q1 Budget — "Need your sign-off by end of day."</div>
+              <div class="feed-time">35 minutes ago</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-avatar" style="background:#e6ffed;color:#2f855a;">AT</div>
+            <div class="feed-body">
+              <div><span class="feed-actor">Alex T.</span>
+                <span class="feed-action"> accepted your meeting invite</span>
+                <span class="feed-source-tag tag-calendar">Calendar</span>
+              </div>
+              <div class="feed-time">2 hours ago</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-avatar" style="background:#f5f5f5;color:#4a4a4a;">DW</div>
+            <div class="feed-body">
+              <div><span class="feed-actor">Dev Wiki</span>
+                <span class="feed-action"> updated: Sprint 12 Planning Doc</span>
+                <span class="feed-source-tag tag-notion">Notion</span>
+              </div>
+              <div class="feed-time">3 hours ago</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-avatar" style="background:#e0f0ff;color:#1e6fcf;">LN</div>
+            <div class="feed-body">
+              <div><span class="feed-actor">Linear</span>
+                <span class="feed-action"> ticket ACN-112 moved to Blocked</span>
+                <span class="feed-source-tag tag-linear">Linear</span>
+              </div>
+              <div class="feed-time">2 hours ago</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-avatar" style="background:#f0e6ff;color:#7c3aed;">TM</div>
+            <div class="feed-body">
+              <div><span class="feed-actor">Taylor M.</span>
+                <span class="feed-action"> reacted to your message in #general</span>
+                <span class="feed-source-tag tag-slack">Slack</span>
+              </div>
+              <div class="feed-time">4 hours ago</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-avatar" style="background:#fee2e2;color:#c53030;">NP</div>
+            <div class="feed-body">
+              <div><span class="feed-actor">Nadia P.</span>
+                <span class="feed-action"> emailed: Weekly report attached</span>
+                <span class="feed-source-tag tag-gmail">Gmail</span>
+              </div>
+              <div class="feed-time">Yesterday · 5:20 PM</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-avatar" style="background:#e6ffed;color:#2f855a;">CA</div>
+            <div class="feed-body">
+              <div><span class="feed-actor">Calendar</span>
+                <span class="feed-action"> reminder: 1:1 with Marcus tomorrow</span>
+                <span class="feed-source-tag tag-calendar">Calendar</span>
+              </div>
+              <div class="feed-time">Yesterday · 4:00 PM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── NOTIFICATIONS ── -->
+      <div class="panel" id="panel-notifications">
+        <div class="panel-title">Notifications</div>
+        <div class="panel-subtitle">5 unread across your connected tools</div>
+
+        <div class="card">
+          <div class="notif-item notif-unread">
+            <div class="notif-icon" style="background:#f0e6ff;">💬</div>
+            <div class="notif-body">
+              <div class="notif-title">Sarah L. mentioned you in #product</div>
+              <div class="notif-desc">Can you review the new onboarding copy before EOD?</div>
+              <div class="notif-time">Slack · 1 hour ago</div>
+            </div>
+          </div>
+          <div class="notif-item notif-unread">
+            <div class="notif-icon" style="background:#fee2e2;">📧</div>
+            <div class="notif-body">
+              <div class="notif-title">Marcus K. — Re: Q1 Budget</div>
+              <div class="notif-desc">Need your sign-off by end of day.</div>
+              <div class="notif-time">Gmail · 35 minutes ago</div>
+            </div>
+          </div>
+          <div class="notif-item notif-unread">
+            <div class="notif-icon" style="background:#e0f0ff;">🔴</div>
+            <div class="notif-body">
+              <div class="notif-title">Ticket ACN-112 is now Blocked</div>
+              <div class="notif-desc">Assigned to you — needs your input to unblock.</div>
+              <div class="notif-time">Linear · 2 hours ago</div>
+            </div>
+          </div>
+          <div class="notif-item notif-unread">
+            <div class="notif-icon" style="background:#e6ffed;">📅</div>
+            <div class="notif-body">
+              <div class="notif-title">Design Review starts in 25 minutes</div>
+              <div class="notif-desc">Alex T., Sam W., Taylor M. · Google Meet</div>
+              <div class="notif-time">Calendar · today at 10:00 AM</div>
+            </div>
+          </div>
+          <div class="notif-item notif-unread">
+            <div class="notif-icon" style="background:#f5f5f5;">📝</div>
+            <div class="notif-body">
+              <div class="notif-title">Sprint 12 Planning Doc updated</div>
+              <div class="notif-desc">Dev Wiki made changes — you were tagged as a reviewer.</div>
+              <div class="notif-time">Notion · 3 hours ago</div>
+            </div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon" style="background:#f0e6ff;">👍</div>
+            <div class="notif-body">
+              <div class="notif-title">Taylor M. reacted to your message</div>
+              <div class="notif-desc">In #general — "Great call on the timeline!"</div>
+              <div class="notif-time">Slack · 4 hours ago</div>
+            </div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon" style="background:#fee2e2;">📧</div>
+            <div class="notif-body">
+              <div class="notif-title">Nadia P. — Weekly report attached</div>
+              <div class="notif-desc">Please review before our sync Thursday.</div>
+              <div class="notif-time">Gmail · yesterday</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── FILTER BY APP ── -->
+      <div class="panel" id="panel-filter">
+        <div class="panel-title">Filter by App</div>
+        <div class="panel-subtitle">Focus your workspace on a single tool or mix and match</div>
+
+        <div class="filter-chips">
+          <div class="chip active" data-filter="all" onclick="filterItems(this)">
+            🌐 All tools
+          </div>
+          <div class="chip" data-filter="slack" onclick="filterItems(this)">
+            💬 Slack
+          </div>
+          <div class="chip" data-filter="gmail" onclick="filterItems(this)">
+            📧 Gmail
+          </div>
+          <div class="chip" data-filter="calendar" onclick="filterItems(this)">
+            📅 Calendar
+          </div>
+          <div class="chip" data-filter="notion" onclick="filterItems(this)">
+            📝 Notion
+          </div>
+          <div class="chip" data-filter="linear" onclick="filterItems(this)">
+            🔵 Linear
+          </div>
+        </div>
+
+        <div class="card" id="filter-results">
+          <!-- Slack -->
+          <div class="filtered-item" data-source="slack">
+            <span class="filtered-source-badge tag-slack">Slack</span>
+            <div>
+              <div class="filtered-text">Sarah L. mentioned you in #product</div>
+              <div class="filtered-sub">1 hour ago</div>
+            </div>
+          </div>
+          <div class="filtered-item" data-source="slack">
+            <span class="filtered-source-badge tag-slack">Slack</span>
+            <div>
+              <div class="filtered-text">Taylor M. reacted to your message in #general</div>
+              <div class="filtered-sub">4 hours ago</div>
+            </div>
+          </div>
+          <!-- Gmail -->
+          <div class="filtered-item" data-source="gmail">
+            <span class="filtered-source-badge tag-gmail">Gmail</span>
+            <div>
+              <div class="filtered-text">Marcus K. — Re: Q1 Budget</div>
+              <div class="filtered-sub">35 minutes ago</div>
+            </div>
+          </div>
+          <div class="filtered-item" data-source="gmail">
+            <span class="filtered-source-badge tag-gmail">Gmail</span>
+            <div>
+              <div class="filtered-text">Nadia P. — Weekly report attached</div>
+              <div class="filtered-sub">Yesterday · 5:20 PM</div>
+            </div>
+          </div>
+          <!-- Calendar -->
+          <div class="filtered-item" data-source="calendar">
+            <span class="filtered-source-badge tag-calendar">Calendar</span>
+            <div>
+              <div class="filtered-text">Design Review — Alex T., Sam W., Taylor M.</div>
+              <div class="filtered-sub">Today · 10:00 AM – 11:00 AM</div>
+            </div>
+          </div>
+          <div class="filtered-item" data-source="calendar">
+            <span class="filtered-source-badge tag-calendar">Calendar</span>
+            <div>
+              <div class="filtered-text">1:1 with Marcus</div>
+              <div class="filtered-sub">Today · 2:00 PM – 2:30 PM</div>
+            </div>
+          </div>
+          <!-- Notion -->
+          <div class="filtered-item" data-source="notion">
+            <span class="filtered-source-badge tag-notion">Notion</span>
+            <div>
+              <div class="filtered-text">Sprint 12 Planning Doc updated — you're tagged as reviewer</div>
+              <div class="filtered-sub">3 hours ago</div>
+            </div>
+          </div>
+          <div class="filtered-item" data-source="notion">
+            <span class="filtered-source-badge tag-notion">Notion</span>
+            <div>
+              <div class="filtered-text">Weekly status doc ready for your review</div>
+              <div class="filtered-sub">Yesterday</div>
+            </div>
+          </div>
+          <!-- Linear -->
+          <div class="filtered-item" data-source="linear">
+            <span class="filtered-source-badge tag-linear">Linear</span>
+            <div>
+              <div class="filtered-text">ACN-112 moved to Blocked — needs your input</div>
+              <div class="filtered-sub">2 hours ago</div>
+            </div>
+          </div>
+          <div class="filtered-item" data-source="linear">
+            <span class="filtered-source-badge tag-linear">Linear</span>
+            <div>
+              <div class="filtered-text">ACN-109 merged and closed by Alex T.</div>
+              <div class="filtered-sub">Yesterday</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DISPLAY & THEME ── -->
+      <div class="panel" id="panel-theme">
+        <div class="panel-title">Display & Theme</div>
+        <div class="panel-subtitle">Control how your workspace looks</div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Color theme</div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:4px;">
+            <div id="btn-light"
+              onclick="setTheme('light')"
+              style="flex:1;padding:14px;border-radius:8px;border:2px solid #1e6fcf;background:#f0f6ff;text-align:center;cursor:pointer;font-size:14px;font-weight:600;color:#1e6fcf;">
+              ☀️ Light
+            </div>
+            <div id="btn-dark"
+              onclick="setTheme('dark')"
+              style="flex:1;padding:14px;border-radius:8px;border:2px solid #d0d7e3;background:#fff;text-align:center;cursor:pointer;font-size:14px;color:#4a5568;">
+              🌙 Dark
+            </div>
+          </div>
+          <p style="font-size:13px;color:#8a94a6;margin-top:12px;">
+            Dark mode reduces eye strain in low-light environments and respects your system preference.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Connected apps</div>
+          </div>
+          <ul class="priority-list">
+            <li>
+              <div class="priority-dot" style="background:#48bb78;"></div>
+              <div>
+                <div class="priority-text">Slack <span style="color:#48bb78;font-weight:600;font-size:12px;">● Connected</span></div>
+              </div>
+            </li>
+            <li>
+              <div class="priority-dot" style="background:#48bb78;"></div>
+              <div>
+                <div class="priority-text">Gmail <span style="color:#48bb78;font-weight:600;font-size:12px;">● Connected</span></div>
+              </div>
+            </li>
+            <li>
+              <div class="priority-dot" style="background:#48bb78;"></div>
+              <div>
+                <div class="priority-text">Google Calendar <span style="color:#48bb78;font-weight:600;font-size:12px;">● Connected</span></div>
+              </div>
+            </li>
+            <li>
+              <div class="priority-dot" style="background:#48bb78;"></div>
+              <div>
+                <div class="priority-text">Notion <span style="color:#48bb78;font-weight:600;font-size:12px;">● Connected</span></div>
+              </div>
+            </li>
+            <li>
+              <div class="priority-dot" style="background:#48bb78;"></div>
+              <div>
+                <div class="priority-text">Linear <span style="color:#48bb78;font-weight:600;font-size:12px;">● Connected</span></div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // ── PANEL SWITCHING ──
+    function switchPanel(el) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      el.classList.add('active');
+      const target = el.dataset.panel;
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-' + target).classList.add('active');
+    }
+
+    // ── DARK MODE ──
+    function toggleTheme() {
+      const isDark = document.body.classList.toggle('dark');
+      document.querySelector('.theme-toggle-btn').textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+      updateThemeBtns(isDark);
+    }
+
+    function setTheme(mode) {
+      const isDark = mode === 'dark';
+      document.body.classList.toggle('dark', isDark);
+      document.querySelector('.theme-toggle-btn').textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+      updateThemeBtns(isDark);
+    }
+
+    function updateThemeBtns(isDark) {
+      const btnLight = document.getElementById('btn-light');
+      const btnDark  = document.getElementById('btn-dark');
+      if (isDark) {
+        btnLight.style.borderColor = '#30363d';
+        btnLight.style.background  = '#161b22';
+        btnLight.style.color       = '#8b949e';
+        btnDark.style.borderColor  = '#58a6ff';
+        btnDark.style.background   = '#1c2e44';
+        btnDark.style.color        = '#58a6ff';
+      } else {
+        btnLight.style.borderColor = '#1e6fcf';
+        btnLight.style.background  = '#f0f6ff';
+        btnLight.style.color       = '#1e6fcf';
+        btnDark.style.borderColor  = '#d0d7e3';
+        btnDark.style.background   = '#fff';
+        btnDark.style.color        = '#4a5568';
+      }
+    }
+
+    // ── FILTER BY APP ──
+    function filterItems(chipEl) {
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chipEl.classList.add('active');
+      const filter = chipEl.dataset.filter;
+      document.querySelectorAll('.filtered-item').forEach(item => {
+        if (filter === 'all' || item.dataset.source === filter) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>
