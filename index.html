@@ -228,11 +228,11 @@ const MSGS_DATA = [
 ];
 
 const EVENTS_DATA = [
-  {id:1, title:'Morning Standup', start:'9:00 AM', end:'9:30 AM', dot:'#1A73E8', attendees:['AT','JL','PN'], location:'Zoom', type:'work', provider:'gcal'},
-  {id:2, title:'Meridian – Deliverable Review', start:'10:30 AM', end:'11:15 AM', dot:'#1A73E8', attendees:['AT','SC'], location:'Google Meet', type:'work', provider:'gcal'},
-  {id:3, title:'Client Call – Harlow Kickoff', start:'1:00 PM', end:'1:45 PM', dot:'#0078D4', attendees:['LP','PN'], location:'Teams Call', type:'work', provider:'outlook'},
+  {id:1, title:'Morning Standup', start:'9:00 AM', end:'9:30 AM', dot:'#1A73E8', attendees:[{initials:'AT',name:'Alex Torres',photo:'https://i.pravatar.cc/80?u=alex-torres'},{initials:'JL',name:'Jamie Liu',photo:'https://i.pravatar.cc/80?u=jamie-liu'},{initials:'PN',name:'Priya Nair',photo:'https://i.pravatar.cc/80?u=priya-nair'}], location:'Zoom', type:'work', provider:'gcal'},
+  {id:2, title:'Meridian – Deliverable Review', start:'10:30 AM', end:'11:15 AM', dot:'#1A73E8', next:true, attendees:[{initials:'AT',name:'Alex Torres',photo:'https://i.pravatar.cc/80?u=alex-torres'},{initials:'SC',name:'Sarah Chen',photo:'https://i.pravatar.cc/80?u=sarah-chen'}], location:'Google Meet', type:'work', provider:'gcal'},
+  {id:3, title:'Client Call – Harlow Kickoff', start:'1:00 PM', end:'1:45 PM', dot:'#0078D4', attendees:[{initials:'LP',name:'Lena Park',photo:'https://i.pravatar.cc/80?u=lena-park'},{initials:'PN',name:'Priya Nair',photo:'https://i.pravatar.cc/80?u=priya-nair'}], location:'Teams Call', type:'work', provider:'outlook'},
   {id:4, title:'Focus Block', start:'2:00 PM', end:'4:00 PM', dot:'#1A73E8', attendees:[], location:'', type:'work', provider:'gcal'},
-  {id:5, title:'Meridian Status Sync', start:'4:00 PM', end:'4:30 PM', dot:'#0078D4', attendees:['AT','JL'], location:'Teams Call', type:'work', provider:'outlook'},
+  {id:5, title:'Meridian Status Sync', start:'4:00 PM', end:'4:30 PM', dot:'#0078D4', attendees:[{initials:'AT',name:'Alex Torres',photo:'https://i.pravatar.cc/80?u=alex-torres'},{initials:'JL',name:'Jamie Liu',photo:'https://i.pravatar.cc/80?u=jamie-liu'}], location:'Teams Call', type:'work', provider:'outlook'},
   {id:6, title:'🏫 School pickup – Maya', start:'2:45 PM', end:'3:00 PM', dot:'#1A73E8', attendees:[], location:'Riverside Elementary', type:'personal', provider:'gcal'},
 ];
 
@@ -524,7 +524,9 @@ function MiniCalendar({ onOpen }) {
             {ev.attendees.length > 0 && (
               <div style={{display:'flex', marginLeft:'auto'}}>
                 {ev.attendees.slice(0,2).map((a,i)=>(
-                  <div key={i} style={{width:16, height:16, borderRadius:'50%', background:'#e4e4e7', color:T.textSec, fontSize:7, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', marginLeft:-3, border:`1.5px solid ${T.surface}`}}>{a}</div>
+                  <div key={i} style={{width:16, height:16, borderRadius:'50%', overflow:'hidden', background:'#e4e4e7', marginLeft:i>0?-3:0, border:`1.5px solid ${T.surface}`, flexShrink:0}}>
+                    <img src={a.photo} alt={a.initials} style={{width:'100%', height:'100%', objectFit:'cover'}} />
+                  </div>
                 ))}
               </div>
             )}
@@ -996,23 +998,28 @@ function CalendarPage() {
         {view==='day' && (
           <div style={{display:'flex', flexDirection:'column', gap:8}}>
             {calPageFiltered.map(ev=>(
-              <div key={ev.id} style={{display:'flex', gap:12, padding:'14px 16px', borderRadius:9, border:`1px solid ${T.border}`, background:T.surface, cursor:'pointer'}}
+              <div key={ev.id} style={{display:'flex', gap:12, padding:'14px 16px', borderRadius:9, border:`1px solid ${ev.next ? '#1A73E8' : T.border}`, background:T.surface, cursor:'pointer', position:'relative'}}
                 onMouseEnter={e=>e.currentTarget.style.background=T.hover} onMouseLeave={e=>e.currentTarget.style.background=T.surface}>
+                {ev.next && <div style={{position:'absolute', top:10, right:12, background:'#1A73E8', color:'#fff', fontSize:10, fontWeight:700, padding:'2px 9px', borderRadius:12, letterSpacing:'0.3px'}}>Next up</div>}
                 <div style={{display:'flex', alignItems:'flex-start', paddingTop:2, flexShrink:0}}>
                   <ToolLogo tool={ev.provider} size={16} />
                 </div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:700, fontSize:14, color:T.text}}>{ev.title}</div>
+                  <div style={{fontWeight:700, fontSize:14, color:T.text, paddingRight: ev.next ? 64 : 0}}>{ev.title}</div>
                   <div style={{fontSize:12, color:T.textSec, marginTop:2}}>
                     {ev.start} – {ev.end}
                     {ev.location && <span style={{color:T.textMuted}}> · {ev.location}</span>}
                   </div>
                   {ev.attendees.length > 0 && (
-                    <div style={{display:'flex', alignItems:'center', gap:3, marginTop:7}}>
+                    <div style={{marginTop:8, display:'flex', flexDirection:'column', gap:4}}>
                       {ev.attendees.map((a,i)=>(
-                        <div key={i} style={{width:20, height:20, borderRadius:'50%', background:'#e4e4e7', color:T.textSec, fontSize:8, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center'}}>{a}</div>
+                        <div key={i} style={{display:'flex', alignItems:'center', gap:7}}>
+                          <div style={{width:22, height:22, borderRadius:'50%', overflow:'hidden', background:'#e4e4e7', flexShrink:0}}>
+                            <img src={a.photo} alt={a.initials} style={{width:'100%', height:'100%', objectFit:'cover'}} />
+                          </div>
+                          <span style={{fontSize:12, color:T.textSec}}>{a.name}</span>
+                        </div>
                       ))}
-                      <span style={{fontSize:12, color:T.textMuted, marginLeft:4}}>{ev.attendees.length} attendee{ev.attendees.length>1?'s':''}</span>
                     </div>
                   )}
                 </div>
