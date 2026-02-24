@@ -539,10 +539,20 @@ function MiniCalendar({ onOpen }) {
 }
 
 function MiniNotifications({ onOpen }) {
-  const [notifs, setNotifs] = useState(NOTIFS_DATA);
+  const [notifs, setNotifs]   = useState(NOTIFS_DATA);
+  const [appFilter, setAppFilter] = React.useState('all');
   const unread = notifs.filter(n=>!n.read).length;
-  const actionItems = notifs.filter(n=>n.urgency==='action');
-  const fyiItems    = notifs.filter(n=>n.urgency==='fyi');
+
+  // Derive unique apps in display order from the data
+  const appOrder = [...new Set(NOTIFS_DATA.map(n=>n.source))]; // slack, gcal, gmail, notion
+  const appLabels = {slack:'Slack', gcal:'GCal', gmail:'Gmail', notion:'Notion'};
+  const appDefs = [
+    {id:'all', label:'All'},
+    ...appOrder.map(s=>({id:s, label:appLabels[s]||s})),
+    {id:'...', label:'...'},
+  ];
+
+  const visible = appFilter==='all' ? notifs : notifs.filter(n=>n.source===appFilter);
 
   const NotifRow = ({n}) => (
     <div onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,read:true}:x))}
@@ -562,12 +572,34 @@ function MiniNotifications({ onOpen }) {
     </div>
   );
 
-  const SectionLabel = ({label, count}) => (
-    <div style={{display:'flex', alignItems:'center', gap:6, padding:'8px 16px 4px', borderBottom:`1px solid ${T.borderSubtle}`}}>
-      <span style={{fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:'0.06em', textTransform:'uppercase'}}>{label}</span>
-      {count > 0 && <span style={{fontSize:11, fontWeight:700, color:T.textMuted, background:T.bg, padding:'0 7px', borderRadius:8, lineHeight:'11px'}}>{count}</span>}
-    </div>
-  );
+  const AppSectionLabel = ({source}) => {
+    const label = appLabels[source] || source;
+    const sUnread = notifs.filter(n=>n.source===source && !n.read).length;
+    return (
+      <div style={{display:'flex', alignItems:'center', gap:6, padding:'7px 16px 4px', borderBottom:`1px solid ${T.borderSubtle}`, background:T.bg}}>
+        <ToolLogo tool={source} size={12} />
+        <span style={{fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:'0.05em', textTransform:'uppercase'}}>{label}</span>
+        {sUnread > 0 && <span style={{fontSize:11, fontWeight:700, color:T.textMuted, background:T.surface, border:`1px solid ${T.border}`, padding:'0 6px', borderRadius:8, lineHeight:'14px'}}>{sUnread}</span>}
+      </div>
+    );
+  };
+
+  // When showing All, group items by app; when filtered, flat list
+  const renderList = () => {
+    if (appFilter !== 'all') {
+      return visible.map(n=><NotifRow key={n.id} n={n} />);
+    }
+    return appOrder.map(src=>{
+      const group = visible.filter(n=>n.source===src);
+      if (group.length === 0) return null;
+      return (
+        <React.Fragment key={src}>
+          <AppSectionLabel source={src} />
+          {group.map(n=><NotifRow key={n.id} n={n} />)}
+        </React.Fragment>
+      );
+    });
+  };
 
   return (
     <Card style={{height:'100%'}}>
@@ -583,23 +615,34 @@ function MiniNotifications({ onOpen }) {
         )}
       </div>
 
+      {/* ── Row 1: App source tabs ──────────────────────────────────── */}
+      <div style={{display:'flex', gap:0, borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, overflowX:'auto'}}>
+        {appDefs.map(a=>{
+          const aUnread = a.id==='all'
+            ? unread
+            : a.id==='...' ? 0
+            : notifs.filter(n=>n.source===a.id && !n.read).length;
+          const isActive = appFilter===a.id;
+          return (
+            <button key={a.id} onClick={()=>setAppFilter(a.id)}
+              style={{display:'flex', alignItems:'center', gap:4, padding:'9px 11px',
+                border:'none', borderBottom:`2px solid ${isActive?T.text:'transparent'}`,
+                background:'transparent', color:isActive?T.text:T.textMuted,
+                fontSize:13, fontWeight:isActive?700:400, cursor:'pointer',
+                whiteSpace:'nowrap', flexShrink:0, transition:'all 0.12s'}}>
+              {a.id!=='all' && a.id!=='...' && <ToolLogo tool={a.id} size={12} />}
+              {a.label}
+              {aUnread > 0 && (
+                <span style={{background:isActive?T.text:'#e4e4e7', color:isActive?'#fff':T.textSec,
+                  borderRadius:10, padding:'0 5px', fontSize:11, fontWeight:700, lineHeight:'16px'}}>{aUnread}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       <div style={{flex:1, overflowY:'auto'}}>
-        {/* ── Needs action group ──────────────────────────────── */}
-        {actionItems.length > 0 && (
-          <>
-            <SectionLabel label="Needs action" count={actionItems.filter(n=>!n.read).length} />
-            {actionItems.map(n=><NotifRow key={n.id} n={n} />)}
-          </>
-        )}
-
-        {/* ── FYI group ───────────────────────────────────────── */}
-        {fyiItems.length > 0 && (
-          <>
-            <SectionLabel label="FYI" count={0} />
-            {fyiItems.map(n=><NotifRow key={n.id} n={n} />)}
-          </>
-        )}
-
+        {renderList()}
         <div onClick={onOpen} style={{padding:'10px 16px', fontSize:16, color:T.textSec, cursor:'pointer', textAlign:'center', borderTop:`1px solid ${T.borderSubtle}`}}
           onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.textSec}>
           View all →
