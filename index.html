@@ -228,12 +228,12 @@ const MSGS_DATA = [
 ];
 
 const EVENTS_DATA = [
-  {id:1, title:'Morning Standup', start:'9:00 AM', end:'9:30 AM', dot:'#6366f1', attendees:['AT','JL','PN'], location:'Zoom', type:'work'},
-  {id:2, title:'Meridian – Deliverable Review', start:'10:30 AM', end:'11:15 AM', dot:'#f59e0b', attendees:['AT','SC'], location:'Google Meet', type:'work'},
-  {id:3, title:'Client Call – Harlow Kickoff', start:'1:00 PM', end:'1:45 PM', dot:'#16a34a', attendees:['LP','PN'], location:'Google Meet', type:'work'},
-  {id:4, title:'Focus Block', start:'2:00 PM', end:'4:00 PM', dot:'#e4e4e7', attendees:[], location:'', type:'work'},
-  {id:5, title:'Meridian Status Sync', start:'4:00 PM', end:'4:30 PM', dot:'#ec4899', attendees:['AT','JL'], location:'Slack Huddle', type:'work'},
-  {id:6, title:'🏫 School pickup – Maya', start:'2:45 PM', end:'3:00 PM', dot:'#fb923c', attendees:[], location:'Riverside Elementary', type:'personal'},
+  {id:1, title:'Morning Standup', start:'9:00 AM', end:'9:30 AM', dot:'#1A73E8', attendees:['AT','JL','PN'], location:'Zoom', type:'work', provider:'gcal'},
+  {id:2, title:'Meridian – Deliverable Review', start:'10:30 AM', end:'11:15 AM', dot:'#1A73E8', attendees:['AT','SC'], location:'Google Meet', type:'work', provider:'gcal'},
+  {id:3, title:'Client Call – Harlow Kickoff', start:'1:00 PM', end:'1:45 PM', dot:'#0078D4', attendees:['LP','PN'], location:'Teams Call', type:'work', provider:'outlook'},
+  {id:4, title:'Focus Block', start:'2:00 PM', end:'4:00 PM', dot:'#1A73E8', attendees:[], location:'', type:'work', provider:'gcal'},
+  {id:5, title:'Meridian Status Sync', start:'4:00 PM', end:'4:30 PM', dot:'#0078D4', attendees:['AT','JL'], location:'Teams Call', type:'work', provider:'outlook'},
+  {id:6, title:'🏫 School pickup – Maya', start:'2:45 PM', end:'3:00 PM', dot:'#1A73E8', attendees:[], location:'Riverside Elementary', type:'personal', provider:'gcal'},
 ];
 
 const NOTIFS_DATA = [
@@ -259,47 +259,77 @@ const INTEGRATIONS_DATA = [
 
 /* ─── MINI PANEL COMPONENTS (for dashboard 2×2) ──────────────────────── */
 function MiniInbox({ onOpen }) {
-  const [cat, setCat] = React.useState('all');
-  const catDefs = [
-    {id:'all',      label:'All'},
-    {id:'client',   label:'Client'},
-    {id:'internal', label:'Internal'},
-    {id:'personal', label:'Personal'},
+  const [appFilter, setAppFilter]     = React.useState('all');
+  const [personFilter, setPersonFilter] = React.useState(null);
+  const appDefs = [
+    {id:'all',     label:'All'},
+    {id:'gmail',   label:'Gmail'},
+    {id:'outlook', label:'Outlook'},
+    {id:'...',     label:'...'},
   ];
-  const filtered = cat==='all' ? INBOX_DATA : INBOX_DATA.filter(m=>m.cat===cat);
-  const unread   = INBOX_DATA.filter(m=>m.unread).length;
+  const appFiltered = appFilter==='all' ? INBOX_DATA : INBOX_DATA.filter(m=>m.source===appFilter);
+  const filtered    = personFilter ? appFiltered.filter(m=>m.from===personFilter) : appFiltered;
+  const unread      = INBOX_DATA.filter(m=>m.unread).length;
+  // Unique senders from current app-filtered set, for Row 2
+  const people = [...new Map(appFiltered.map(m=>[m.from,m])).values()];
 
   return (
     <Card style={{height:'100%'}}>
       <CardHeader title="Inbox" icon="mail" count={unread} action onAction={onOpen} />
 
-      {/* ── Category tabs ─────────────────────────────────────────── */}
+      {/* ── Row 1: App source tabs ──────────────────────────────────── */}
       <div style={{display:'flex', gap:0, borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, overflowX:'auto'}}>
-        {catDefs.map(c=>{
-          const cUnread = c.id==='all'
+        {appDefs.map(a=>{
+          const aUnread = a.id==='all'
             ? INBOX_DATA.filter(m=>m.unread).length
-            : INBOX_DATA.filter(m=>m.cat===c.id && m.unread).length;
-          const isActive = cat===c.id;
+            : a.id==='...' ? 0
+            : INBOX_DATA.filter(m=>m.source===a.id && m.unread).length;
+          const isActive = appFilter===a.id;
           return (
-            <button key={c.id} onClick={()=>setCat(c.id)}
+            <button key={a.id} onClick={()=>{ setAppFilter(a.id); setPersonFilter(null); }}
               style={{display:'flex', alignItems:'center', gap:4, padding:'9px 13px',
                 border:'none', borderBottom:`2px solid ${isActive?T.text:'transparent'}`,
                 background:'transparent', color:isActive?T.text:T.textMuted,
                 fontSize:14, fontWeight:isActive?700:400, cursor:'pointer',
                 whiteSpace:'nowrap', flexShrink:0, transition:'all 0.12s'}}>
-              {c.label}
-              {cUnread > 0 && (
+              {a.id!=='all' && a.id!=='...' && <ToolLogo tool={a.id} size={12} />}
+              {a.label}
+              {aUnread > 0 && (
                 <span style={{background:isActive?T.text:'#e4e4e7', color:isActive?'#fff':T.textSec,
-                  borderRadius:10, padding:'0 7px', fontSize:14, fontWeight:700, lineHeight:'14px'}}>{cUnread}</span>
+                  borderRadius:10, padding:'0 6px', fontSize:11, fontWeight:700, lineHeight:'16px'}}>{aUnread}</span>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* ── Email rows ────────────────────────────────────────────── */}
+      {/* ── Row 2: Sender strip (repopulates with Row 1) ─────────────── */}
+      <div style={{display:'flex', gap:10, padding:'10px 16px 8px', borderBottom:`1px solid ${T.borderSubtle}`, overflowX:'auto', flexShrink:0}}>
+        {people.map(m=>{
+          const isSelected = personFilter===m.from;
+          return (
+            <div key={m.id} onClick={()=>setPersonFilter(isSelected ? null : m.from)}
+              title={m.from}
+              style={{display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+                cursor:'pointer', flexShrink:0,
+                opacity: personFilter && !isSelected ? 0.35 : 1,
+                transition:'opacity 0.12s'}}>
+              <div style={{position:'relative'}}>
+                <StackedAvatars participants={m.participants||[{initials:m.initials,photo:m.photo||null}]} size={28} />
+                {m.unread && <div style={{position:'absolute', top:-1, right:-1, width:7, height:7, borderRadius:'50%', background:'#ef4444', border:`1.5px solid ${T.surface}`}} />}
+              </div>
+              <span style={{fontSize:10, color:isSelected?T.text:T.textSec, fontWeight:isSelected?700:400,
+                maxWidth:36, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center'}}>
+                {m.from.split(' ')[0]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Email rows ────────────────────────────────────────────────── */}
       <div style={{flex:1, overflowY:'auto'}}>
-        {filtered.slice(0,4).map(m=>(
+        {filtered.slice(0,3).map(m=>(
           <div key={m.id} onClick={()=>onOpen(m.id)}
             style={{display:'flex', gap:12, padding:'12px 16px', borderBottom:`1px solid ${T.borderSubtle}`,
               cursor:'pointer', background:m.unread?'#fafafa':'transparent'}}
@@ -322,10 +352,10 @@ function MiniInbox({ onOpen }) {
           </div>
         ))}
       </div>
-      {filtered.length > 4 && (
+      {filtered.length > 3 && (
         <div onClick={onOpen} style={{padding:'10px 16px', fontSize:16, color:T.textSec, cursor:'pointer', borderTop:`1px solid ${T.borderSubtle}`, textAlign:'center', fontWeight:500}}
           onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.textSec}>
-          +{filtered.length-4} more →
+          +{filtered.length-3} more →
         </div>
       )}
     </Card>
@@ -333,58 +363,75 @@ function MiniInbox({ onOpen }) {
 }
 
 function MiniMessages({ onOpen }) {
-  const [filter, setFilter] = React.useState('all');
+  const [appFilter, setAppFilter]       = React.useState('all');
+  const [convoFilter, setConvoFilter]   = React.useState(null);
   const unread = MSGS_DATA.filter(m=>m.unread).length;
-  const filterDefs = [
-    {id:'all',      label:'All'},
-    {id:'slack',    label:'Slack'},
-    {id:'teams',    label:'Teams'},
-    {id:'personal', label:'Personal'},
+  const appDefs = [
+    {id:'all',   label:'All'},
+    {id:'slack', label:'Slack'},
+    {id:'teams', label:'Teams'},
+    {id:'...',   label:'...'},
   ];
-  const filtered = filter==='all' ? MSGS_DATA : MSGS_DATA.filter(m=>m.platform===filter);
+  const appFiltered  = appFilter==='all' ? MSGS_DATA : MSGS_DATA.filter(m=>m.platform===appFilter);
+  const filtered     = convoFilter ? appFiltered.filter(m=>m.channel===convoFilter) : appFiltered;
+
   return (
     <Card style={{height:'100%'}}>
       <CardHeader title="Messages" icon="chat" count={unread} action onAction={onOpen} />
 
-      {/* ── Recent contacts avatar strip ─────────────────────────── */}
-      <div style={{display:'flex', gap:10, padding:'12px 16px 10px', borderBottom:`1px solid ${T.borderSubtle}`, overflowX:'auto', flexShrink:0}}>
-        {MSGS_DATA.map(m=>(
-          <div key={m.id} onClick={()=>onOpen(m.id)} title={m.sender}
-            style={{display:'flex', flexDirection:'column', alignItems:'center', cursor:'pointer', flexShrink:0}}>
-            <div style={{position:'relative'}}>
-              <StackedAvatars participants={m.participants||[{initials:m.initials,photo:m.photo||null}]} size={28} />
-              {m.unread && <div style={{position:'absolute', top:-1, right:-1, width:7, height:7, borderRadius:'50%', background:'#ef4444', border:'1.5px solid #fff'}} />}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Source filter pills ───────────────────────────────────── */}
-      <div style={{display:'flex', gap:5, padding:'9px 16px 8px', borderBottom:`1px solid ${T.borderSubtle}`, overflowX:'auto', flexShrink:0}}>
-        {filterDefs.map(f=>{
-          const fCount = f.id==='all'
+      {/* ── Row 1: App source tabs ──────────────────────────────────── */}
+      <div style={{display:'flex', gap:0, borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, overflowX:'auto'}}>
+        {appDefs.map(a=>{
+          const aUnread = a.id==='all'
             ? MSGS_DATA.filter(m=>m.unread).length
-            : MSGS_DATA.filter(m=>m.platform===f.id && m.unread).length;
-          const active = filter===f.id;
+            : a.id==='...' ? 0
+            : MSGS_DATA.filter(m=>m.platform===a.id && m.unread).length;
+          const isActive = appFilter===a.id;
           return (
-            <button key={f.id} onClick={()=>setFilter(f.id)}
-              style={{display:'flex', alignItems:'center', gap:4, padding:'3px 12px',
-                border:`1px solid ${active?T.text:T.border}`, borderRadius:20, cursor:'pointer',
-                background:active?T.text:T.surface, color:active?'#fff':T.textSec,
-                fontSize:12, fontWeight:active?600:400, whiteSpace:'nowrap', flexShrink:0, transition:'all 0.12s'}}>
-              {f.label}
-              {fCount > 0 && (
-                <span style={{background:active?'rgba(255,255,255,0.25)':'#e4e4e7', color:active?'#fff':T.textSec,
-                  borderRadius:10, padding:'0 4px', fontSize:12, fontWeight:700, lineHeight:'12px'}}>{fCount}</span>
+            <button key={a.id} onClick={()=>{ setAppFilter(a.id); setConvoFilter(null); }}
+              style={{display:'flex', alignItems:'center', gap:4, padding:'9px 13px',
+                border:'none', borderBottom:`2px solid ${isActive?T.text:'transparent'}`,
+                background:'transparent', color:isActive?T.text:T.textMuted,
+                fontSize:14, fontWeight:isActive?700:400, cursor:'pointer',
+                whiteSpace:'nowrap', flexShrink:0, transition:'all 0.12s'}}>
+              {a.id!=='all' && a.id!=='...' && <ToolLogo tool={a.id} size={12} />}
+              {a.label}
+              {aUnread > 0 && (
+                <span style={{background:isActive?T.text:'#e4e4e7', color:isActive?'#fff':T.textSec,
+                  borderRadius:10, padding:'0 6px', fontSize:11, fontWeight:700, lineHeight:'16px'}}>{aUnread}</span>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* ── Conversation list ─────────────────────────────────────── */}
+      {/* ── Row 2: Channels + DMs strip (repopulates with Row 1) ───── */}
+      <div style={{display:'flex', gap:10, padding:'10px 16px 8px', borderBottom:`1px solid ${T.borderSubtle}`, overflowX:'auto', flexShrink:0}}>
+        {appFiltered.map(m=>{
+          const isSelected = convoFilter===m.channel;
+          return (
+            <div key={m.id} onClick={()=>setConvoFilter(isSelected ? null : m.channel)}
+              title={m.channel}
+              style={{display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+                cursor:'pointer', flexShrink:0,
+                opacity: convoFilter && !isSelected ? 0.35 : 1,
+                transition:'opacity 0.12s'}}>
+              <div style={{position:'relative'}}>
+                <StackedAvatars participants={m.participants||[{initials:m.initials,photo:m.photo||null}]} size={28} />
+                {m.unread && <div style={{position:'absolute', top:-1, right:-1, width:7, height:7, borderRadius:'50%', background:'#ef4444', border:`1.5px solid ${T.surface}`}} />}
+              </div>
+              <span style={{fontSize:10, color:isSelected?T.text:T.textSec, fontWeight:isSelected?700:400,
+                maxWidth:40, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center'}}>
+                {m.channel.replace('#','')}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Conversation list ──────────────────────────────────────── */}
       <div style={{flex:1, overflowY:'auto'}}>
-        {filtered.slice(0,4).map(m=>(
+        {filtered.slice(0,3).map(m=>(
           <div key={m.id} onClick={()=>onOpen(m.id)} style={{display:'flex', gap:12, padding:'12px 16px', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer', background:m.unread?'#fafafa':'transparent'}}
             onMouseEnter={e=>e.currentTarget.style.background='#fafafa'} onMouseLeave={e=>e.currentTarget.style.background=m.unread?'#fafafa':'transparent'}>
             <div style={{position:'relative', flexShrink:0}}>
@@ -413,10 +460,20 @@ function MiniMessages({ onOpen }) {
 function MiniCalendar({ onOpen }) {
   const today = new Date();
   const shortDay = ['S','M','T','W','T','F','S'];
+  const [calFilter, setCalFilter] = React.useState('all');
+  const calDefs = [
+    {id:'all',     label:'All'},
+    {id:'gcal',    label:'GCal'},
+    {id:'outlook', label:'Outlook'},
+    {id:'...',     label:'...'},
+  ];
+  const calFiltered = calFilter==='all' ? EVENTS_DATA : EVENTS_DATA.filter(ev=>ev.provider===calFilter);
+
   return (
     <Card style={{height:'100%'}}>
       <CardHeader title="Calendar" icon="cal" count={EVENTS_DATA.length} action onAction={onOpen} />
-      {/* Week strip */}
+
+      {/* ── Week strip ───────────────────────────────────────────────── */}
       <div style={{display:'flex', gap:3, padding:'10px 16px 8px', borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0}}>
         {[-2,-1,0,1,2,3,4].map(offset=>{
           const d = new Date(today); d.setDate(d.getDate()+offset);
@@ -430,11 +487,36 @@ function MiniCalendar({ onOpen }) {
           );
         })}
       </div>
+
+      {/* ── Calendar provider toggle row ─────────────────────────────── */}
+      <div style={{display:'flex', gap:0, borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, overflowX:'auto'}}>
+        {calDefs.map(c=>{
+          const isActive = calFilter===c.id;
+          const cCount = c.id==='all' ? EVENTS_DATA.length : c.id==='...' ? 0 : EVENTS_DATA.filter(ev=>ev.provider===c.id).length;
+          return (
+            <button key={c.id} onClick={()=>setCalFilter(c.id)}
+              style={{display:'flex', alignItems:'center', gap:4, padding:'7px 12px',
+                border:'none', borderBottom:`2px solid ${isActive?T.text:'transparent'}`,
+                background:'transparent', color:isActive?T.text:T.textMuted,
+                fontSize:13, fontWeight:isActive?700:400, cursor:'pointer',
+                whiteSpace:'nowrap', flexShrink:0, transition:'all 0.12s'}}>
+              {c.id!=='all' && c.id!=='...' && <ToolLogo tool={c.id} size={12} />}
+              {c.label}
+              {cCount > 0 && c.id!=='all' && (
+                <span style={{background:isActive?T.text:'#e4e4e7', color:isActive?'#fff':T.textSec,
+                  borderRadius:10, padding:'0 5px', fontSize:10, fontWeight:700, lineHeight:'16px'}}>{cCount}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Event list ───────────────────────────────────────────────── */}
       <div style={{flex:1, overflowY:'auto', padding:'8px 16px 10px'}}>
-        {EVENTS_DATA.map(ev=>(
+        {calFiltered.map(ev=>(
           <div key={ev.id} onClick={onOpen} style={{display:'flex', alignItems:'center', gap:9, padding:'8px 0', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer'}}
             onMouseEnter={e=>e.currentTarget.style.opacity='0.75'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
-            <div style={{width:3, height:28, borderRadius:2, background:ev.dot, flexShrink:0}} />
+            <ToolLogo tool={ev.provider} size={14} />
             <div style={{flex:1, minWidth:0}}>
               <div style={{fontSize:14, fontWeight:600, color:T.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{ev.title}</div>
               <div style={{fontSize:12, color:T.textMuted}}>{ev.start}{ev.location && ` · ${ev.location}`}</div>
@@ -448,6 +530,9 @@ function MiniCalendar({ onOpen }) {
             )}
           </div>
         ))}
+        {calFiltered.length === 0 && (
+          <div style={{padding:'20px 0', textAlign:'center', color:T.textMuted, fontSize:13}}>No events from this calendar</div>
+        )}
       </div>
     </Card>
   );
@@ -526,9 +611,22 @@ function MiniNotifications({ onOpen }) {
 
 /* ─── FULL PAGE VIEWS ─────────────────────────────────────────────────── */
 function InboxPage({ initialSelected=null }) {
-  const [selected, setSelected] = useState(initialSelected);
-  const [composing, setComposing] = useState(false);
+  const [selected, setSelected]         = useState(initialSelected);
+  const [composing, setComposing]       = useState(false);
+  const [appFilter, setAppFilter]       = React.useState('all');
+  const [personFilter, setPersonFilter] = React.useState(null);
   const msg = INBOX_DATA.find(m=>m.id===selected);
+
+  const appDefs = [
+    {id:'all',     label:'All'},
+    {id:'gmail',   label:'Gmail'},
+    {id:'outlook', label:'Outlook'},
+    {id:'...',     label:'...'},
+  ];
+  const appFiltered    = appFilter==='all' ? INBOX_DATA : INBOX_DATA.filter(m=>m.source===appFilter);
+  const filteredInbox  = personFilter ? appFiltered.filter(m=>m.from===personFilter) : appFiltered;
+  const people         = [...new Map(appFiltered.map(m=>[m.from,m])).values()];
+
   return (
     <div style={{display:'flex', gap:12, flex:1, minHeight:0}} className="fade-up">
       {/* List */}
@@ -541,70 +639,82 @@ function InboxPage({ initialSelected=null }) {
           <Btn label="Compose" variant="dark" small onClick={()=>{setComposing(true);setSelected(null);}} />
         </div>
 
-        {/* ── Category tabs ────────────────────────────────────────── */}
-        {(()=>{
-          const [inboxCat, setInboxCat] = React.useState('all');
-          const catDefs = [
-            {id:'all',      label:'All'},
-            {id:'client',   label:'Client'},
-            {id:'internal', label:'Internal'},
-            {id:'personal', label:'Personal'},
-          ];
-          const filteredInbox = inboxCat==='all' ? INBOX_DATA : INBOX_DATA.filter(m=>m.cat===inboxCat);
-          return (
-            <>
-              <div style={{display:'flex', gap:0, borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, overflowX:'auto'}}>
-                {catDefs.map(c=>{
-                  const cUnread = c.id==='all'
-                    ? INBOX_DATA.filter(m=>m.unread).length
-                    : INBOX_DATA.filter(m=>m.cat===c.id && m.unread).length;
-                  const isActive = inboxCat===c.id;
-                  return (
-                    <button key={c.id} onClick={()=>setInboxCat(c.id)}
-                      style={{display:'flex', alignItems:'center', gap:4, padding:'9px 14px',
-                        border:'none', borderBottom:`2px solid ${isActive?T.text:'transparent'}`,
-                        background:'transparent', color:isActive?T.text:T.textMuted,
-                        fontSize:14, fontWeight:isActive?700:400, cursor:'pointer',
-                        whiteSpace:'nowrap', flexShrink:0, transition:'all 0.12s'}}>
-                      {c.label}
-                      {cUnread > 0 && (
-                        <span style={{background:isActive?T.text:'#e4e4e7', color:isActive?'#fff':T.textSec,
-                          borderRadius:10, padding:'0 7px', fontSize:14, fontWeight:700, lineHeight:'14px'}}>{cUnread}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+        {/* ── Row 1: App source tabs ─────────────────────────────────── */}
+        <div style={{display:'flex', gap:0, borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, overflowX:'auto'}}>
+          {appDefs.map(a=>{
+            const aUnread = a.id==='all'
+              ? INBOX_DATA.filter(m=>m.unread).length
+              : a.id==='...' ? 0
+              : INBOX_DATA.filter(m=>m.source===a.id && m.unread).length;
+            const isActive = appFilter===a.id;
+            return (
+              <button key={a.id} onClick={()=>{ setAppFilter(a.id); setPersonFilter(null); }}
+                style={{display:'flex', alignItems:'center', gap:4, padding:'9px 14px',
+                  border:'none', borderBottom:`2px solid ${isActive?T.text:'transparent'}`,
+                  background:'transparent', color:isActive?T.text:T.textMuted,
+                  fontSize:14, fontWeight:isActive?700:400, cursor:'pointer',
+                  whiteSpace:'nowrap', flexShrink:0, transition:'all 0.12s'}}>
+                {a.id!=='all' && a.id!=='...' && <ToolLogo tool={a.id} size={12} />}
+                {a.label}
+                {aUnread > 0 && (
+                  <span style={{background:isActive?T.text:'#e4e4e7', color:isActive?'#fff':T.textSec,
+                    borderRadius:10, padding:'0 6px', fontSize:11, fontWeight:700, lineHeight:'16px'}}>{aUnread}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-              {/* ── Email rows ──────────────────────────────────────── */}
-              <div style={{flex:1, overflowY:'auto'}}>
-                {filteredInbox.map(m=>(
-                  <div key={m.id} onClick={()=>{setSelected(m.id);setComposing(false);}}
-                    style={{display:'flex', gap:12, padding:'12px 16px', borderBottom:`1px solid ${T.borderSubtle}`,
-                      cursor:'pointer', background:selected===m.id?T.activeBg:m.unread?'#fafafa':'transparent'}}
-                    onMouseEnter={e=>{if(selected!==m.id)e.currentTarget.style.background='#fafafa';}}
-                    onMouseLeave={e=>{e.currentTarget.style.background=selected===m.id?T.activeBg:m.unread?'#fafafa':'transparent';}}>
-                    <div style={{position:'relative', flexShrink:0}}>
-                      <Avatar initials={m.initials} photo={m.photo||null} color={m.unread?'#e4e4e7':'#f4f4f5'} textColor={m.unread?T.text:T.textMuted} size={46} />
-                      {m.unread && <div style={{position:'absolute', top:0, right:-1, width:7, height:7, borderRadius:'50%', background:'#ef4444', border:`1.5px solid ${T.surface}`}} />}
-                    </div>
-                    <div style={{flex:1, minWidth:0}}>
-                      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:6}}>
-                        <div style={{display:'flex', alignItems:'center', gap:5, overflow:'hidden'}}>
-                          <ToolLogo tool={m.source} size={12} />
-                          <span style={{fontSize:14, fontWeight:m.unread?700:500, color:T.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{m.from}</span>
-                        </div>
-                        <span style={{fontSize:12, color:T.textMuted, flexShrink:0}}>{m.time}</span>
-                      </div>
-                      <div style={{fontSize:13, color:m.unread?T.text:T.textSec, fontWeight:m.unread?500:400, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1}}>{m.subject}</div>
-                      <div style={{fontSize:12, color:T.textMuted, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1}}>{m.preview}</div>
-                    </div>
-                  </div>
-                ))}
+        {/* ── Row 2: Sender strip ────────────────────────────────────── */}
+        <div style={{display:'flex', gap:10, padding:'10px 16px 8px', borderBottom:`1px solid ${T.borderSubtle}`, overflowX:'auto', flexShrink:0}}>
+          {people.map(m=>{
+            const isSelected = personFilter===m.from;
+            return (
+              <div key={m.id} onClick={()=>setPersonFilter(isSelected ? null : m.from)}
+                title={m.from}
+                style={{display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+                  cursor:'pointer', flexShrink:0,
+                  opacity: personFilter && !isSelected ? 0.35 : 1,
+                  transition:'opacity 0.12s'}}>
+                <div style={{position:'relative'}}>
+                  <Avatar initials={m.initials} photo={m.photo||null} color='#e4e4e7' textColor={T.text} size={28} />
+                  {m.unread && <div style={{position:'absolute', top:-1, right:-1, width:7, height:7, borderRadius:'50%', background:'#ef4444', border:`1.5px solid ${T.surface}`}} />}
+                </div>
+                <span style={{fontSize:10, color:isSelected?T.text:T.textSec, fontWeight:isSelected?700:400,
+                  maxWidth:40, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center'}}>
+                  {m.from.split(' ')[0]}
+                </span>
               </div>
-            </>
-          );
-        })()}
+            );
+          })}
+        </div>
+
+        {/* ── Email rows ──────────────────────────────────────── */}
+        <div style={{flex:1, overflowY:'auto'}}>
+          {filteredInbox.map(m=>(
+            <div key={m.id} onClick={()=>{setSelected(m.id);setComposing(false);}}
+              style={{display:'flex', gap:12, padding:'12px 16px', borderBottom:`1px solid ${T.borderSubtle}`,
+                cursor:'pointer', background:selected===m.id?T.activeBg:m.unread?'#fafafa':'transparent'}}
+              onMouseEnter={e=>{if(selected!==m.id)e.currentTarget.style.background='#fafafa';}}
+              onMouseLeave={e=>{e.currentTarget.style.background=selected===m.id?T.activeBg:m.unread?'#fafafa':'transparent';}}>
+              <div style={{position:'relative', flexShrink:0}}>
+                <Avatar initials={m.initials} photo={m.photo||null} color={m.unread?'#e4e4e7':'#f4f4f5'} textColor={m.unread?T.text:T.textMuted} size={46} />
+                {m.unread && <div style={{position:'absolute', top:0, right:-1, width:7, height:7, borderRadius:'50%', background:'#ef4444', border:`1.5px solid ${T.surface}`}} />}
+              </div>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:6}}>
+                  <div style={{display:'flex', alignItems:'center', gap:5, overflow:'hidden'}}>
+                    <ToolLogo tool={m.source} size={12} />
+                    <span style={{fontSize:14, fontWeight:m.unread?700:500, color:T.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{m.from}</span>
+                  </div>
+                  <span style={{fontSize:12, color:T.textMuted, flexShrink:0}}>{m.time}</span>
+                </div>
+                <div style={{fontSize:13, color:m.unread?T.text:T.textSec, fontWeight:m.unread?500:400, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1}}>{m.subject}</div>
+                <div style={{fontSize:12, color:T.textMuted, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1}}>{m.preview}</div>
+              </div>
+            </div>
+          ))}
+        </div>
       </Card>
       {/* Detail / Compose */}
       <Card style={{flex:1, minHeight:0}}>
@@ -671,51 +781,67 @@ function MessagesPage({ initialActive=null }) {
     {sender:'You', initials:'JR', photo:'https://i.pravatar.cc/80?u=jordan-rivera', text:'On it, reviewing now!', time:'10:08 AM', mine:true},
     {sender:msg.sender, initials:msg.initials, photo:msg.photo||null, text:'Thanks! Page 3 of the Notion doc has the timeline.', time:'10:10 AM', mine:false},
   ] : [];
-  const [msgFilter, setMsgFilter] = React.useState('all');
-  const msgFilterDefs = [
-    {id:'all',      label:'All'},
-    {id:'slack',    label:'Slack'},
-    {id:'teams',    label:'Teams'},
-    {id:'personal', label:'Personal'},
+  const [appFilter, setAppFilter]       = React.useState('all');
+  const [convoFilter, setConvoFilter]   = React.useState(null);
+  const msgAppDefs = [
+    {id:'all',   label:'All'},
+    {id:'slack', label:'Slack'},
+    {id:'teams', label:'Teams'},
+    {id:'...',   label:'...'},
   ];
-  const filteredMsgs = msgFilter==='all' ? MSGS_DATA : MSGS_DATA.filter(m=>m.platform===msgFilter);
+  const msgAppFiltered = appFilter==='all' ? MSGS_DATA : MSGS_DATA.filter(m=>m.platform===appFilter);
+  const filteredMsgs   = convoFilter ? msgAppFiltered.filter(m=>m.channel===convoFilter) : msgAppFiltered;
 
   return (
     <div style={{display:'flex', gap:12, flex:1, minHeight:0}} className="fade-up">
       <Card style={{width:268, flexShrink:0, minHeight:0}}>
 
-        {/* ── Recent contacts avatar strip ─────────────────────── */}
-        <div style={{display:'flex', gap:10, padding:'12px 16px 12px', borderBottom:`1px solid ${T.borderSubtle}`, overflowX:'auto', flexShrink:0}}>
-          {MSGS_DATA.map(m=>(
-            <div key={m.id} onClick={()=>setActive(m.id)} title={m.sender}
-              style={{display:'flex', flexDirection:'column', alignItems:'center', cursor:'pointer', flexShrink:0}}>
-              <div style={{position:'relative'}}>
-                <StackedAvatars participants={m.participants||[{initials:m.initials,photo:m.photo||null}]} size={28} />
-                {m.unread && <div style={{position:'absolute', top:-1, right:-1, width:9, height:9, borderRadius:'50%', background:'#ef4444', border:'2px solid #fff'}} />}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Source filter pills ───────────────────────────────── */}
-        <div style={{display:'flex', gap:5, padding:'10px 16px 9px', borderBottom:`1px solid ${T.borderSubtle}`, overflowX:'auto', flexShrink:0}}>
-          {msgFilterDefs.map(f=>{
-            const fCount = f.id==='all'
+        {/* ── Row 1: App source tabs ────────────────────────────── */}
+        <div style={{display:'flex', gap:0, borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, overflowX:'auto'}}>
+          {msgAppDefs.map(a=>{
+            const aUnread = a.id==='all'
               ? MSGS_DATA.filter(m=>m.unread).length
-              : MSGS_DATA.filter(m=>m.platform===f.id && m.unread).length;
-            const isActive = msgFilter===f.id;
+              : a.id==='...' ? 0
+              : MSGS_DATA.filter(m=>m.platform===a.id && m.unread).length;
+            const isActiveTab = appFilter===a.id;
             return (
-              <button key={f.id} onClick={()=>setMsgFilter(f.id)}
-                style={{display:'flex', alignItems:'center', gap:4, padding:'3px 12px',
-                  border:`1px solid ${isActive?T.text:T.border}`, borderRadius:20, cursor:'pointer',
-                  background:isActive?T.text:T.surface, color:isActive?'#fff':T.textSec,
-                  fontSize:12, fontWeight:isActive?600:400, whiteSpace:'nowrap', flexShrink:0, transition:'all 0.12s'}}>
-                {f.label}
-                {fCount > 0 && (
-                  <span style={{background:isActive?'rgba(255,255,255,0.25)':'#e4e4e7', color:isActive?'#fff':T.textSec,
-                    borderRadius:10, padding:'0 4px', fontSize:12, fontWeight:700, lineHeight:'12px'}}>{fCount}</span>
+              <button key={a.id} onClick={()=>{ setAppFilter(a.id); setConvoFilter(null); }}
+                style={{display:'flex', alignItems:'center', gap:4, padding:'9px 13px',
+                  border:'none', borderBottom:`2px solid ${isActiveTab?T.text:'transparent'}`,
+                  background:'transparent', color:isActiveTab?T.text:T.textMuted,
+                  fontSize:13, fontWeight:isActiveTab?700:400, cursor:'pointer',
+                  whiteSpace:'nowrap', flexShrink:0, transition:'all 0.12s'}}>
+                {a.id!=='all' && a.id!=='...' && <ToolLogo tool={a.id} size={12} />}
+                {a.label}
+                {aUnread > 0 && (
+                  <span style={{background:isActiveTab?T.text:'#e4e4e7', color:isActiveTab?'#fff':T.textSec,
+                    borderRadius:10, padding:'0 6px', fontSize:11, fontWeight:700, lineHeight:'16px'}}>{aUnread}</span>
                 )}
               </button>
+            );
+          })}
+        </div>
+
+        {/* ── Row 2: Channels + DMs strip ──────────────────────── */}
+        <div style={{display:'flex', gap:10, padding:'10px 16px 8px', borderBottom:`1px solid ${T.borderSubtle}`, overflowX:'auto', flexShrink:0}}>
+          {msgAppFiltered.map(m=>{
+            const isSel = convoFilter===m.channel;
+            return (
+              <div key={m.id} onClick={()=>{ setConvoFilter(isSel ? null : m.channel); setActive(m.id); }}
+                title={m.channel}
+                style={{display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+                  cursor:'pointer', flexShrink:0,
+                  opacity: convoFilter && !isSel ? 0.35 : 1,
+                  transition:'opacity 0.12s'}}>
+                <div style={{position:'relative'}}>
+                  <StackedAvatars participants={m.participants||[{initials:m.initials,photo:m.photo||null}]} size={28} />
+                  {m.unread && <div style={{position:'absolute', top:-1, right:-1, width:7, height:7, borderRadius:'50%', background:'#ef4444', border:`1.5px solid ${T.surface}`}} />}
+                </div>
+                <span style={{fontSize:10, color:isSel?T.text:T.textSec, fontWeight:isSel?700:400,
+                  maxWidth:40, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textAlign:'center'}}>
+                  {m.channel.replace('#','')}
+                </span>
+              </div>
             );
           })}
         </div>
@@ -769,13 +895,23 @@ function MessagesPage({ initialActive=null }) {
 
 function CalendarPage() {
   const [view, setView] = useState('day');
+  const [calFilter, setCalFilter] = React.useState('all');
   const today = new Date();
   const y=today.getFullYear(), mo=today.getMonth();
   const firstDay = new Date(y,mo,1).getDay();
   const daysInMonth = new Date(y,mo+1,0).getDate();
   const shortDays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const calPageDefs = [
+    {id:'all',     label:'All calendars'},
+    {id:'gcal',    label:'Google Calendar'},
+    {id:'outlook', label:'Outlook Calendar'},
+    {id:'...',     label:'...'},
+  ];
+  const calPageFiltered = calFilter==='all' ? EVENTS_DATA : EVENTS_DATA.filter(ev=>ev.provider===calFilter);
+
   return (
     <Card style={{flex:1, minHeight:0}} className="fade-up">
+      {/* ── Header ──────────────────────────────────────────────────── */}
       <div style={{padding:'14px 20px', borderBottom:`1px solid ${T.borderSubtle}`, display:'flex', alignItems:'center', gap:12, flexShrink:0}}>
         <span style={{fontWeight:700, fontSize:20, color:T.text}}>{today.toLocaleString('default',{month:'long'})} {today.getFullYear()}</span>
         <div style={{display:'flex', gap:2, background:T.bg, borderRadius:8, padding:2, border:`1px solid ${T.border}`}}>
@@ -789,13 +925,39 @@ function CalendarPage() {
           <Btn label="New event" icon="plus" variant="dark" small />
         </div>
       </div>
+
+      {/* ── Calendar provider toggle row ────────────────────────────── */}
+      <div style={{display:'flex', gap:0, borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, overflowX:'auto'}}>
+        {calPageDefs.map(c=>{
+          const isActive = calFilter===c.id;
+          const cCount = c.id==='all' ? EVENTS_DATA.length : c.id==='...' ? 0 : EVENTS_DATA.filter(ev=>ev.provider===c.id).length;
+          return (
+            <button key={c.id} onClick={()=>setCalFilter(c.id)}
+              style={{display:'flex', alignItems:'center', gap:5, padding:'9px 16px',
+                border:'none', borderBottom:`2px solid ${isActive?T.text:'transparent'}`,
+                background:'transparent', color:isActive?T.text:T.textMuted,
+                fontSize:14, fontWeight:isActive?700:400, cursor:'pointer',
+                whiteSpace:'nowrap', flexShrink:0, transition:'all 0.12s'}}>
+              {c.id!=='all' && c.id!=='...' && <ToolLogo tool={c.id} size={14} />}
+              {c.label}
+              {cCount > 0 && c.id!=='all' && (
+                <span style={{background:isActive?T.text:'#e4e4e7', color:isActive?'#fff':T.textSec,
+                  borderRadius:10, padding:'0 6px', fontSize:11, fontWeight:700, lineHeight:'16px'}}>{cCount}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       <div style={{flex:1, overflowY:'auto', padding:16}}>
         {view==='day' && (
           <div style={{display:'flex', flexDirection:'column', gap:8}}>
-            {EVENTS_DATA.map(ev=>(
+            {calPageFiltered.map(ev=>(
               <div key={ev.id} style={{display:'flex', gap:12, padding:'14px 16px', borderRadius:9, border:`1px solid ${T.border}`, background:T.surface, cursor:'pointer'}}
                 onMouseEnter={e=>e.currentTarget.style.background=T.hover} onMouseLeave={e=>e.currentTarget.style.background=T.surface}>
-                <div style={{width:4, borderRadius:2, background:ev.dot, flexShrink:0, alignSelf:'stretch', minHeight:32}} />
+                <div style={{display:'flex', alignItems:'flex-start', paddingTop:2, flexShrink:0}}>
+                  <ToolLogo tool={ev.provider} size={16} />
+                </div>
                 <div style={{flex:1}}>
                   <div style={{fontWeight:700, fontSize:14, color:T.text}}>{ev.title}</div>
                   <div style={{fontSize:12, color:T.textSec, marginTop:2}}>
@@ -813,6 +975,9 @@ function CalendarPage() {
                 </div>
               </div>
             ))}
+            {calPageFiltered.length === 0 && (
+              <div style={{padding:24, textAlign:'center', color:T.textMuted, fontSize:14}}>No events from this calendar today</div>
+            )}
           </div>
         )}
         {view==='month' && (
@@ -828,7 +993,7 @@ function CalendarPage() {
                   <div key={d} style={{minHeight:68, padding:6, border:`1px solid ${T.border}`, borderRadius:8, background:isToday?T.text:T.surface, cursor:'pointer'}}
                     onMouseEnter={e=>{if(!isToday)e.currentTarget.style.background=T.hover;}} onMouseLeave={e=>{e.currentTarget.style.background=isToday?T.text:T.surface;}}>
                     <div style={{fontSize:13, fontWeight:700, color:isToday?'#fff':T.text, marginBottom:3}}>{d}</div>
-                    {isToday && EVENTS_DATA.slice(0,2).map(ev=>(
+                    {isToday && calPageFiltered.slice(0,2).map(ev=>(
                       <div key={ev.id} style={{fontSize:11, background:ev.dot, color:'#fff', borderRadius:3, padding:'1px 4px', marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{ev.title}</div>
                     ))}
                   </div>
