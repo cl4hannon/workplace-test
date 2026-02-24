@@ -258,13 +258,14 @@ const INTEGRATIONS_DATA = [
 ];
 
 /* ─── ATTENDEE AVATAR (with hover tooltip) ───────────────────────────── */
-function AttendeeAvatar({ a, surfaceColor }) {
+function AttendeeAvatar({ a, surfaceColor, size }) {
   const [hov, setHov] = React.useState(false);
+  const sz = size || 34;
   return (
     <div style={{position:'relative'}}
       onMouseEnter={()=>setHov(true)}
       onMouseLeave={()=>setHov(false)}>
-      <div style={{width:34, height:34, borderRadius:'50%', overflow:'hidden', background:'#e4e4e7', border:`2px solid ${surfaceColor||'#fff'}`, cursor:'default', flexShrink:0}}>
+      <div style={{width:sz, height:sz, borderRadius:'50%', overflow:'hidden', background:'#e4e4e7', border:`2px solid ${surfaceColor||'#fff'}`, cursor:'default', flexShrink:0}}>
         <img src={a.photo} alt={a.initials} style={{width:'100%', height:'100%', objectFit:'cover'}} />
       </div>
       {hov && (
@@ -548,8 +549,8 @@ function MiniCalendar({ onOpen }) {
             {ev.attendees.length > 0 && (
               <div style={{display:'flex', marginLeft:'auto'}}>
                 {ev.attendees.slice(0,2).map((a,i)=>(
-                  <div key={i} style={{width:16, height:16, borderRadius:'50%', overflow:'hidden', background:'#e4e4e7', marginLeft:i>0?-3:0, border:`1.5px solid ${T.surface}`, flexShrink:0}}>
-                    <img src={a.photo} alt={a.initials} style={{width:'100%', height:'100%', objectFit:'cover'}} />
+                  <div key={i} style={{marginLeft: i>0 ? -6 : 0, zIndex: ev.attendees.length - i}}>
+                    <AttendeeAvatar a={a} surfaceColor={T.surface} size={26} />
                   </div>
                 ))}
               </div>
