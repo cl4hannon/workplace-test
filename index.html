@@ -690,6 +690,108 @@ function MiniNotifications({ onOpen }) {
   );
 }
 
+/* ─── NOTIFICATIONS PAGE ─────────────────────────────────────────────── */
+function NotificationsPage() {
+  const [notifs, setNotifs]     = useState(NOTIFS_DATA);
+  const [appFilter, setAppFilter] = React.useState('all');
+  const unread = notifs.filter(n=>!n.read).length;
+
+  const appOrder  = [...new Set(NOTIFS_DATA.map(n=>n.source))];
+  const appLabels = {slack:'Slack', gcal:'GCal', gmail:'Gmail', notion:'Notion'};
+  const appDefs   = [
+    {id:'all', label:'All'},
+    ...appOrder.map(s=>({id:s, label:appLabels[s]||s})),
+  ];
+
+  const visible = appFilter==='all' ? notifs : notifs.filter(n=>n.source===appFilter);
+
+  const NotifRow = ({n}) => (
+    <div onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,read:true}:x))}
+      style={{display:'flex', gap:12, padding:'12px 16px', borderBottom:`1px solid ${T.borderSubtle}`,
+        cursor:'pointer', background:!n.read?'#fafafa':'transparent', opacity:n.read?0.65:1}}
+      onMouseEnter={e=>e.currentTarget.style.background='#fafafa'}
+      onMouseLeave={e=>e.currentTarget.style.background=!n.read?'#fafafa':'transparent'}>
+      <div style={{display:'flex', alignItems:'center', gap:6, flexShrink:0}}>
+        {!n.read ? <Dot size={5} color='#ef4444' /> : <div style={{width:5}} />}
+        <ToolLogo tool={n.source} size={18} />
+      </div>
+      <div style={{flex:1, minWidth:0}}>
+        <div style={{fontSize:14, fontWeight:n.read?400:600, color:T.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{n.title}</div>
+        <div style={{fontSize:12, color:T.textMuted, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:1}}>{n.body}</div>
+      </div>
+      <span style={{fontSize:12, color:T.textMuted, flexShrink:0, alignSelf:'flex-start', marginTop:1}}>{n.time}</span>
+    </div>
+  );
+
+  const AppSectionLabel = ({source}) => {
+    const label = appLabels[source] || source;
+    const sUnread = notifs.filter(n=>n.source===source && !n.read).length;
+    return (
+      <div style={{display:'flex', alignItems:'center', gap:6, padding:'7px 16px 4px', borderBottom:`1px solid ${T.borderSubtle}`, background:T.bg}}>
+        <ToolLogo tool={source} size={12} />
+        <span style={{fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:'0.05em', textTransform:'uppercase'}}>{label}</span>
+        {sUnread > 0 && <span style={{fontSize:11, fontWeight:700, color:T.textMuted, background:T.surface, border:`1px solid ${T.border}`, padding:'0 6px', borderRadius:8, lineHeight:'14px'}}>{sUnread}</span>}
+      </div>
+    );
+  };
+
+  const renderList = () => {
+    if (appFilter !== 'all') return visible.map(n=><NotifRow key={n.id} n={n} />);
+    return appOrder.map(src=>{
+      const group = visible.filter(n=>n.source===src);
+      if (group.length === 0) return null;
+      return (
+        <React.Fragment key={src}>
+          <AppSectionLabel source={src} />
+          {group.map(n=><NotifRow key={n.id} n={n} />)}
+        </React.Fragment>
+      );
+    });
+  };
+
+  return (
+    <Card style={{height:'100%'}}>
+      {/* Header */}
+      <div style={{display:'flex', alignItems:'center', padding:'14px 16px 12px', borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, gap:8}}>
+        <span style={{fontWeight:700, fontSize:20, color:T.text, flex:1}}>Notifications</span>
+        {unread > 0 && <span style={{fontSize:13, fontWeight:700, color:T.textMuted, background:T.bg, padding:'1px 8px', borderRadius:10, lineHeight:'13px'}}>{unread}</span>}
+        {unread > 0 && (
+          <button onClick={()=>setNotifs(ns=>ns.map(n=>({...n,read:true})))}
+            style={{background:'none', border:'none', fontSize:13, color:T.textMuted, fontWeight:500, padding:'2px 0', cursor:'pointer'}}
+            onMouseEnter={e=>e.currentTarget.style.color=T.text}
+            onMouseLeave={e=>e.currentTarget.style.color=T.textMuted}>Mark all read</button>
+        )}
+      </div>
+      {/* App-source filter tabs */}
+      <div style={{display:'flex', gap:0, borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, overflowX:'auto'}}>
+        {appDefs.map(a=>{
+          const aUnread = a.id==='all' ? unread : notifs.filter(n=>n.source===a.id && !n.read).length;
+          const isActive = appFilter===a.id;
+          return (
+            <button key={a.id} onClick={()=>setAppFilter(a.id)}
+              style={{display:'flex', alignItems:'center', gap:4, padding:'9px 11px',
+                border:'none', borderBottom:`2px solid ${isActive?T.text:'transparent'}`,
+                background:'transparent', color:isActive?T.text:T.textMuted,
+                fontSize:13, fontWeight:isActive?700:400, cursor:'pointer',
+                whiteSpace:'nowrap', flexShrink:0, transition:'all 0.12s'}}>
+              {a.id!=='all' && <ToolLogo tool={a.id} size={12} />}
+              {a.label}
+              {aUnread > 0 && (
+                <span style={{background:isActive?T.text:'#e4e4e7', color:isActive?'#fff':T.textSec,
+                  borderRadius:10, padding:'0 5px', fontSize:11, fontWeight:700, lineHeight:'16px'}}>{aUnread}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {/* List */}
+      <div style={{flex:1, overflowY:'auto'}}>
+        {renderList()}
+      </div>
+    </Card>
+  );
+}
+
 /* ─── FULL PAGE VIEWS ─────────────────────────────────────────────────── */
 function InboxPage({ initialSelected=null }) {
   const [selected, setSelected]         = useState(initialSelected);
@@ -1356,7 +1458,7 @@ function HomePage({ onNav }) {
           {icon:'mail',  label:`${unreadEmail} unread`,    sub:'Email',         nav:'inbox',    alert:unreadEmail>0},
           {icon:'chat',  label:`${unreadMsg} unread`,      sub:'Messages',      nav:'messages', alert:unreadMsg>0},
           {icon:'cal',   label:`5 upcoming events`, sub:'Today',     nav:'calendar', alert:false},
-          {icon:'bell',  label:`${unreadNotif} new`,       sub:'Notifications', nav:'home',     alert:unreadNotif>0},
+          {icon:'bell',  label:`${unreadNotif} new`,       sub:'Notifications', nav:'notifications', alert:unreadNotif>0},
         ].map(s=>(
           <button key={s.nav+s.sub} onClick={()=>onNav(s.nav)} style={{flex:1, display:'flex', alignItems:'center', gap:12, padding:'11px 16px', border:`1px solid ${T.border}`, borderRadius:9, background:T.surface, cursor:'pointer', boxShadow:T.shadow, transition:'all 0.12s'}}
             onMouseEnter={e=>{e.currentTarget.style.boxShadow=T.shadowMd;}} onMouseLeave={e=>{e.currentTarget.style.boxShadow=T.shadow;}}>
@@ -1377,7 +1479,7 @@ function HomePage({ onNav }) {
         <MiniInbox    onOpen={(id)=>onNav('inbox', id)} />
         <MiniMessages onOpen={(id)=>onNav('messages', id)} />
         <MiniCalendar onOpen={()=>onNav('calendar')} />
-        <MiniNotifications onOpen={()=>onNav('home')} />
+        <MiniNotifications onOpen={()=>onNav('notifications')} />
       </div>
     </div>
   );
@@ -1388,8 +1490,9 @@ const NAV_ITEMS = [
   {id:'home',        icon:'home',   label:'Home',        group:'main'},
   {id:'inbox',       icon:'mail',   label:'Inbox',       group:'main', badge:()=>INBOX_DATA.filter(m=>m.unread).length},
   {id:'messages',    icon:'chat',   label:'Messages',    group:'main', badge:()=>MSGS_DATA.filter(m=>m.unread).length},
-  {id:'calendar',    icon:'cal',    label:'Calendar',    group:'main'},
-  {id:'search',      icon:'search', label:'Search',      group:'tools'},
+  {id:'calendar',      icon:'cal',    label:'Calendar',       group:'main'},
+  {id:'notifications', icon:'bell',  label:'Notifications', group:'main', badge:()=>NOTIFS_DATA.filter(n=>!n.read).length},
+  {id:'search',        icon:'search', label:'Search',       group:'tools'},
   {id:'connections', icon:'plug',   label:'Connections', group:'tools', badge:()=>INTEGRATIONS_DATA.filter(i=>!i.connected).length},
   {id:'settings',    icon:'gear',   label:'Settings',    group:'bottom'},
   {id:'billing',     icon:'card',   label:'Billing',     group:'bottom'},
@@ -1457,7 +1560,7 @@ function Sidebar({ active, onNav, expanded, onToggle }) {
 }
 
 /* ─── TOP BAR ─────────────────────────────────────────────────────────── */
-const PAGE_LABELS = {home:'Home',inbox:'Inbox',messages:'Messages',calendar:'Calendar',activity:'Activity',search:'Search',connections:'Connections',settings:'Settings',billing:'Billing',help:'Help & legal'};
+const PAGE_LABELS = {home:'Home',inbox:'Inbox',messages:'Messages',calendar:'Calendar',notifications:'Notifications',activity:'Activity',search:'Search',connections:'Connections',settings:'Settings',billing:'Billing',help:'Help & legal'};
 
 function TopBar({ active, onNav }) {
   const [search, setSearch] = useState('');
@@ -1492,8 +1595,9 @@ function App() {
           {active==='home'        && <HomePage onNav={nav} />}
           {active==='inbox'       && <InboxPage initialSelected={deepLink} />}
           {active==='messages'    && <MessagesPage initialActive={deepLink} />}
-          {active==='calendar'    && <CalendarPage />}
-          {active==='activity'    && <ActivityPage onNav={nav} />}
+          {active==='calendar'      && <CalendarPage />}
+          {active==='notifications' && <NotificationsPage />}
+          {active==='activity'      && <ActivityPage onNav={nav} />}
           {active==='search'      && <SearchPage />}
           {active==='connections' && <ConnectionsPage />}
           {active==='settings'    && <SettingsPage />}
