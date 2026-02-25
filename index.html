@@ -214,7 +214,7 @@ const Btn = ({label, icon, variant='outline', onClick, small}) => {
 /* ─── DATA ───────────────────────────────────────────────────────────── */
 const INBOX_DATA = [
   {id:1, from:'Sarah Chen', initials:'SC', photo:'https://i.pravatar.cc/80?u=sarah-chen', subject:'Re: Meridian Q1 Deliverables', preview:'Files are in the Drive folder. Let me know if the format works for their team.', time:'9:42 AM', unread:true, source:'gmail', cat:'client'},
-  {id:2, from:'Marcus Webb', initials:'MW', photo:'https://i.pravatar.cc/80?u=marcus-webb', subject:'Harlow scope update – v2', preview:'Two questions on the timeline before I send to their exec team — got 15 min today?', time:'9:15 AM', unread:true, source:'gmail', cat:'client'},
+  {id:2, from:'Marcus Webb', initials:'MW', photo:'https://i.pravatar.cc/80?u=marcus-webb', subject:'Harlow scope update – v2', preview:'Two questions on the timeline before I send to their exec team — got 15 min today?', time:'9:15 AM', unread:false, source:'gmail', cat:'client'},
   {id:3, from:'Jira', initials:'JI', subject:'[SCRUM-72] assigned to you', preview:'Marcus Webb has assigned SCRUM-72 "Build notification center" to you.', time:'8:50 AM', unread:false, source:'outlook', cat:'internal'},
   {id:4, from:'Notion', initials:'NO', subject:'New comment on "Meridian Roadmap"', preview:'Alex left a comment: "@you Can we confirm Q2 scope before Thursday?\'s exec review?"', time:'8:30 AM', unread:false, source:'gmail', cat:'internal'},
   {id:5, from:'Lena Park', initials:'LP', photo:'https://i.pravatar.cc/80?u=lena-park', subject:'Contract renewal – signature needed', preview:'Hi Jordan, attaching the updated MSA for your signature.', time:'Yesterday', unread:false, source:'gmail', cat:'client'},
@@ -223,7 +223,7 @@ const INBOX_DATA = [
 
 const MSGS_DATA = [
   {id:1, channel:'#meridian-status', platform:'slack', sender:'Alex Torres', initials:'AT', photo:'https://i.pravatar.cc/80?u=alex-torres', participants:[{initials:'AT',photo:'https://i.pravatar.cc/80?u=alex-torres'},{initials:'JL',photo:'https://i.pravatar.cc/80?u=jamie-liu'}], text:'Quick check before 3pm — are we good to send the deliverable as-is? Let me know if you need any changes before we push.', time:'10:02 AM', unread:true, replies:3},
-  {id:2, channel:'Harlow & Co', platform:'teams', sender:'Priya Nair', initials:'PN', photo:'https://i.pravatar.cc/80?u=priya-nair', participants:[{initials:'PN',photo:'https://i.pravatar.cc/80?u=priya-nair'},{initials:'LP',photo:'https://i.pravatar.cc/80?u=lena-park'}], text:'Kickoff deck is uploaded to Teams. Can you confirm the agenda before Friday\'s call?', time:'9:55 AM', unread:true, replies:0},
+  {id:2, channel:'Harlow & Co', platform:'teams', sender:'Priya Nair', initials:'PN', photo:'https://i.pravatar.cc/80?u=priya-nair', participants:[{initials:'PN',photo:'https://i.pravatar.cc/80?u=priya-nair'},{initials:'LP',photo:'https://i.pravatar.cc/80?u=lena-park'}], text:'Kickoff deck is uploaded to Teams. Can you confirm the agenda before Friday\'s call?', time:'9:55 AM', unread:false, replies:0},
   {id:3, channel:'#meridian-eng', platform:'slack', sender:'Jamie Liu', initials:'JL', photo:'https://i.pravatar.cc/80?u=jamie-liu', participants:[{initials:'JL',photo:'https://i.pravatar.cc/80?u=jamie-liu'},{initials:'AT',photo:'https://i.pravatar.cc/80?u=alex-torres'}], text:'Staging is back up. OAuth issue is resolved — nothing blocking on our end.', time:'9:30 AM', unread:false, replies:5},
   {id:4, channel:'Jacquelyn J.', platform:'personal', sender:'Jacquelyn J.', initials:'JJ', photo:'https://i.pravatar.cc/80?u=jacquelyn-j', participants:[{initials:'JJ',photo:'https://i.pravatar.cc/80?u=jacquelyn-j'}], text:'Are we still on for Saturday? Let me know if the time works — I can move to 11 if 10 is too early.', time:'9:00 AM', unread:false, replies:0},
 ];
@@ -239,8 +239,8 @@ const EVENTS_DATA = [
 
 const NOTIFS_DATA = [
   {id:1, source:'slack', icon:'@', title:'Alex mentioned you in #meridian-status', body:'Can you confirm Q2 scope items before Thursday\'s call?', time:'10:05 AM', read:false, urgency:'action'},
-  {id:2, source:'gcal',  icon:'🏫', title:'Reminder: School pickup at 2:45 PM', body:'Riverside Elementary early release — leave by 2:30 to make it on time.', time:'9:50 AM', read:false, urgency:'action'},
-  {id:3, source:'gcal',  icon:'↗', title:'Client Call in 30 min', body:'Harlow Kickoff · Google Meet link in calendar', time:'9:30 AM', read:false, urgency:'action'},
+  {id:2, source:'gcal',  icon:'🏫', title:'Reminder: School pickup at 2:45 PM', body:'Riverside Elementary early release — leave by 2:30 to make it on time.', time:'9:50 AM', read:true, urgency:'action'},
+  {id:3, source:'gcal',  icon:'↗', title:'Client Call in 30 min', body:'Harlow Kickoff · Google Meet link in calendar', time:'9:30 AM', read:true, urgency:'action'},
   {id:4, source:'gmail', icon:'✉', title:'New message from Marcus Webb', body:'"This looks great. Two small tweaks on page 4…"', time:'9:15 AM', read:true, urgency:'fyi'},
   {id:5, source:'notion',icon:'💬', title:'New comment on Meridian Roadmap', body:'Marcus left a note: "Confirm Q2 scope before Thursday — exec review is Friday."', time:'9:30 AM', read:true, urgency:'fyi'},
 ];
@@ -1345,8 +1345,10 @@ function HomePage({ onNav }) {
         <div style={{fontSize:22, fontWeight:700, color:T.text}}>My Day</div>
         <div style={{fontSize:14, color:T.textMuted, fontWeight:500}}>10:15 AM</div>
       </div>
-      {/* Status strip */}
-      <div style={{display:'flex', gap:8, flexShrink:0}}>
+      {/* Activity section label + status strip */}
+      <div style={{flexShrink:0}}>
+        <div style={{fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:6}}>Activity</div>
+      <div style={{display:'flex', gap:8}}>
         {[
           {icon:'mail',  label:`${unreadEmail} unread`,    sub:'Email',         nav:'inbox',    alert:unreadEmail>0},
           {icon:'chat',  label:`${unreadMsg} unread`,      sub:'Messages',      nav:'messages', alert:unreadMsg>0},
@@ -1365,18 +1367,7 @@ function HomePage({ onNav }) {
             </div>
           </button>
         ))}
-        {/* Activity card — distinct amber treatment */}
-        <button onClick={()=>onNav('activity')} style={{flex:1, display:'flex', alignItems:'center', gap:12, padding:'11px 16px', border:'1px solid #fcd34d', borderLeft:'3px solid #f59e0b', borderRadius:9, background:'#fffbeb', cursor:'pointer', boxShadow:T.shadow, transition:'all 0.12s'}}
-          onMouseEnter={e=>{e.currentTarget.style.boxShadow=T.shadowMd;}} onMouseLeave={e=>{e.currentTarget.style.boxShadow=T.shadow;}}>
-          <div style={{position:'relative', flexShrink:0, width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center'}}>
-            <Icon name="activity" size={26} color='#92400e' strokeWidth={1.5} />
-            <div style={{position:'absolute', top:0, right:0, width:8, height:8, borderRadius:'50%', background:'#f59e0b', border:'1.5px solid #fffbeb'}} />
-          </div>
-          <div style={{textAlign:'left', minWidth:0}}>
-            <div style={{fontSize:16, fontWeight:700, color:'#78350f', lineHeight:1.2, whiteSpace:'nowrap'}}>{ACTIVITY_DATA.length} new</div>
-            <div style={{fontSize:13, color:'#92400e', marginTop:1, whiteSpace:'nowrap', fontWeight:500}}>Since 8:15 AM</div>
-          </div>
-        </button>
+      </div>
       </div>
       {/* 2×2 grid */}
       <div style={{flex:1, display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:12, minHeight:0}}>
