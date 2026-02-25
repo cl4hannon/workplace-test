@@ -1436,10 +1436,14 @@ function ActivityPage({ onNav }) {
 }
 
 /* ─── HOME DASHBOARD ─────────────────────────────────────────────────── */
-function HomePage({ onNav }) {
+function HomePage({ onNav, visitedPages }) {
   const unreadEmail = INBOX_DATA.filter(m=>m.unread).length;
   const unreadMsg   = MSGS_DATA.filter(m=>m.unread).length;
   const unreadNotif = NOTIFS_DATA.filter(n=>!n.read).length;
+  // Display overrides — zero out after the page has been visited
+  const dispEmail = (visitedPages && visitedPages.has('inbox'))         ? 0 : unreadEmail;
+  const dispMsg   = (visitedPages && visitedPages.has('messages'))      ? 0 : unreadMsg;
+  const dispNotif = (visitedPages && visitedPages.has('notifications')) ? 0 : unreadNotif;
   return (
     <div style={{display:'flex', flexDirection:'column', flex:1, gap:12, minHeight:0}} className="fade-up">
       {/* My Day header */}
@@ -1455,10 +1459,10 @@ function HomePage({ onNav }) {
         </div>
       <div style={{display:'flex', gap:8}}>
         {[
-          {icon:'mail',  label:`${unreadEmail} unread`,    sub:'Email',         nav:'inbox',    alert:unreadEmail>0},
-          {icon:'chat',  label:`${unreadMsg} unread`,      sub:'Messages',      nav:'messages', alert:unreadMsg>0},
-          {icon:'cal',   label:`5 upcoming events`, sub:'Today',     nav:'calendar', alert:false},
-          {icon:'bell',  label:`${unreadNotif} new`,       sub:'Notifications', nav:'notifications', alert:unreadNotif>0},
+          {icon:'mail',  label:dispEmail>0 ? `${dispEmail} unread`  : '0 unread', sub:'Email',         nav:'inbox',         alert:dispEmail>0},
+          {icon:'chat',  label:dispMsg>0   ? `${dispMsg} unread`    : '0 unread', sub:'Messages',      nav:'messages',      alert:dispMsg>0},
+          {icon:'cal',   label:`5 upcoming events`,                               sub:'Today',         nav:'calendar',      alert:false},
+          {icon:'bell',  label:dispNotif>0 ? `${dispNotif} new`     : '0 new',   sub:'Notifications', nav:'notifications', alert:dispNotif>0},
         ].map(s=>(
           <button key={s.nav+s.sub} onClick={()=>onNav(s.nav)} style={{flex:1, display:'flex', alignItems:'center', gap:12, padding:'11px 16px', border:`1px solid ${T.border}`, borderRadius:9, background:T.surface, cursor:'pointer', boxShadow:T.shadow, transition:'all 0.12s'}}
             onMouseEnter={e=>{e.currentTarget.style.boxShadow=T.shadowMd;}} onMouseLeave={e=>{e.currentTarget.style.boxShadow=T.shadow;}}>
@@ -1499,12 +1503,13 @@ const NAV_ITEMS = [
   {id:'help',        icon:'help',   label:'Help',        group:'bottom'},
 ];
 
-function Sidebar({ active, onNav, expanded, onToggle }) {
+function Sidebar({ active, onNav, expanded, onToggle, visitedPages }) {
   const W = expanded ? 200 : 48;
 
   const NavItem = ({item}) => {
     const isActive = active===item.id;
-    const count = item.badge ? item.badge() : 0;
+    const rawCount = item.badge ? item.badge() : 0;
+    const count = (visitedPages && visitedPages.has(item.id)) ? 0 : rawCount;
     return (
       <div onClick={()=>onNav(item.id)} title={!expanded ? item.label : ''} style={{position:'relative', display:'flex', alignItems:'center', gap:10, padding: expanded ? '7px 10px' : '7px', marginBottom:2, borderRadius:T.radiusSm, cursor:'pointer', background:isActive?T.activeBg:'transparent', justifyContent: expanded?'flex-start':'center', transition:'background 0.1s'}}
         onMouseEnter={e=>{if(!isActive)e.currentTarget.style.background=T.hover;}}
@@ -1582,17 +1587,23 @@ function TopBar({ active, onNav }) {
 
 /* ─── APP ROOT ───────────────────────────────────────────────────────── */
 function App() {
-  const [active, setActive]     = useState('home');
-  const [expanded, setExpanded] = useState(true);
-  const [deepLink, setDeepLink]  = useState(null);
-  const nav = useCallback((id, itemId=null) => { setActive(id); setDeepLink(itemId); }, []);
+  const [active, setActive]       = useState('home');
+  const [expanded, setExpanded]   = useState(true);
+  const [deepLink, setDeepLink]   = useState(null);
+  const [visitedPages, setVisitedPages] = useState(new Set());
+  const TRACKABLE = ['inbox','messages','notifications'];
+  const nav = useCallback((id, itemId=null) => {
+    setActive(id);
+    setDeepLink(itemId);
+    if (TRACKABLE.includes(id)) setVisitedPages(v => new Set([...v, id]));
+  }, []);
   return (
     <div style={{display:'flex', height:'100vh', overflow:'hidden', background:T.bg}}>
-      <Sidebar active={active} onNav={nav} expanded={expanded} onToggle={()=>setExpanded(e=>!e)} />
+      <Sidebar active={active} onNav={nav} expanded={expanded} onToggle={()=>setExpanded(e=>!e)} visitedPages={visitedPages} />
       <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0}}>
         <TopBar active={active} onNav={nav} />
         <div style={{flex:1, overflow:'hidden', padding:'16px 20px', display:'flex', flexDirection:'column', minHeight:0}}>
-          {active==='home'        && <HomePage onNav={nav} />}
+          {active==='home'        && <HomePage onNav={nav} visitedPages={visitedPages} />}
           {active==='inbox'       && <InboxPage initialSelected={deepLink} />}
           {active==='messages'    && <MessagesPage initialActive={deepLink} />}
           {active==='calendar'      && <CalendarPage />}
