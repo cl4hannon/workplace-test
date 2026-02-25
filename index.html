@@ -1352,7 +1352,7 @@ function HomePage({ onNav }) {
         {[
           {icon:'mail',  label:`${unreadEmail} unread`,    sub:'Email',         nav:'inbox',    alert:unreadEmail>0},
           {icon:'chat',  label:`${unreadMsg} unread`,      sub:'Messages',      nav:'messages', alert:unreadMsg>0},
-          {icon:'cal',   label:`${EVENTS_DATA.length} events`, sub:'Today',     nav:'calendar', alert:false},
+          {icon:'cal',   label:`${EVENTS_DATA.length} upcoming events`, sub:'Today',     nav:'calendar', alert:false},
           {icon:'bell',  label:`${unreadNotif} new`,       sub:'Notifications', nav:'home',     alert:unreadNotif>0},
         ].map(s=>(
           <button key={s.nav+s.sub} onClick={()=>onNav(s.nav)} style={{flex:1, display:'flex', alignItems:'center', gap:12, padding:'11px 16px', border:`1px solid ${T.border}`, borderRadius:9, background:T.surface, cursor:'pointer', boxShadow:T.shadow, transition:'all 0.12s'}}
