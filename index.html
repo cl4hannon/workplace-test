@@ -147,8 +147,9 @@ const PATHS = {
   plus:    [["M12 5v14M5 12h14"]],
   dots:    [["M12 13a1 1 0 110-2 1 1 0 010 2zM19 13a1 1 0 110-2 1 1 0 010 2zM5 13a1 1 0 110-2 1 1 0 010 2z"]],
   reply:   [["M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"]],
-  check:   [["M20 6L9 17l-5-5"]],
-  send:    [["M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"]],
+  check:    [["M20 6L9 17l-5-5"]],
+  send:     [["M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"]],
+  activity: [["M22 12h-4l-3 9L9 3l-3 9H2"]],
 };
 
 const Icon = ({ name, size=16, color=T.iconInactive, strokeWidth=1.6 }) => {
@@ -242,6 +243,13 @@ const NOTIFS_DATA = [
   {id:3, source:'gcal',  icon:'↗', title:'Client Call in 30 min', body:'Harlow Kickoff · Google Meet link in calendar', time:'9:30 AM', read:false, urgency:'action'},
   {id:4, source:'gmail', icon:'✉', title:'New message from Marcus Webb', body:'"This looks great. Two small tweaks on page 4…"', time:'9:15 AM', read:true, urgency:'fyi'},
   {id:5, source:'notion',icon:'💬', title:'New comment on Meridian Roadmap', body:'Marcus left a note: "Confirm Q2 scope before Thursday — exec review is Friday."', time:'9:30 AM', read:true, urgency:'fyi'},
+];
+
+const ACTIVITY_DATA = [
+  {id:1, source:'slack',  title:'Alex Torres mentioned you', body:'Can you confirm Q2 scope items before Thursday\'s call?', time:'10:05 AM', needsReply:true},
+  {id:2, source:'github', title:'PR review requested: Meridian API v2', body:'Jamie Liu is requesting your review on #47 — Auth refactor', time:'8:45 AM', needsReply:true},
+  {id:3, source:'notion', title:'Marcus Webb commented on Meridian Roadmap', body:'"Confirm Q2 scope before Thursday — exec review is Friday."', time:'9:30 AM', needsReply:false},
+  {id:4, source:'gmail',  title:'Marcus Webb replied to your email', body:'"This looks great. Two small tweaks on page 4…"', time:'9:15 AM', needsReply:false},
 ];
 
 const INTEGRATIONS_DATA = [
@@ -1288,6 +1296,43 @@ function HelpPage() {
   );
 }
 
+/* ─── ACTIVITY PAGE ──────────────────────────────────────────────────── */
+function ActivityPage({ onNav }) {
+  const needsCount = ACTIVITY_DATA.filter(a=>a.needsReply).length;
+  return (
+    <div style={{display:'flex', flexDirection:'column', flex:1, minHeight:0}} className="fade-up">
+      <div style={{padding:'20px 24px 14px', borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0}}>
+        <div style={{display:'flex', alignItems:'baseline', gap:10}}>
+          <div style={{fontSize:22, fontWeight:700, color:T.text}}>Activity</div>
+          <div style={{fontSize:13, color:'#92400e', fontWeight:600, background:'#fef3c7', padding:'2px 9px', borderRadius:10}}>Since 8:15 AM</div>
+        </div>
+        <div style={{fontSize:13, color:T.textMuted, marginTop:4}}>{ACTIVITY_DATA.length} new items · {needsCount} need a reply</div>
+      </div>
+      <div style={{flex:1, overflowY:'auto'}}>
+        {ACTIVITY_DATA.map(item=>(
+          <div key={item.id} style={{display:'flex', gap:14, padding:'16px 24px', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer', transition:'background 0.1s'}}
+            onMouseEnter={e=>e.currentTarget.style.background=T.hover}
+            onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+            <div style={{flexShrink:0, marginTop:2}}>
+              <ToolLogo tool={item.source} size={18} />
+            </div>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:3, flexWrap:'wrap'}}>
+                <div style={{fontSize:14, fontWeight:600, color:T.text}}>{item.title}</div>
+                {item.needsReply && (
+                  <div style={{flexShrink:0, fontSize:10, fontWeight:700, color:'#92400e', background:'#fef3c7', padding:'2px 8px', borderRadius:10, letterSpacing:'0.2px'}}>Needs reply</div>
+                )}
+              </div>
+              <div style={{fontSize:13, color:T.textMuted, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.body}</div>
+              <div style={{fontSize:12, color:T.textMuted, marginTop:4}}>{item.time}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── HOME DASHBOARD ─────────────────────────────────────────────────── */
 function HomePage({ onNav }) {
   const unreadEmail = INBOX_DATA.filter(m=>m.unread).length;
@@ -1320,6 +1365,18 @@ function HomePage({ onNav }) {
             </div>
           </button>
         ))}
+        {/* Activity card — distinct amber treatment */}
+        <button onClick={()=>onNav('activity')} style={{flex:1, display:'flex', alignItems:'center', gap:12, padding:'11px 16px', border:'1px solid #fcd34d', borderLeft:'3px solid #f59e0b', borderRadius:9, background:'#fffbeb', cursor:'pointer', boxShadow:T.shadow, transition:'all 0.12s'}}
+          onMouseEnter={e=>{e.currentTarget.style.boxShadow=T.shadowMd;}} onMouseLeave={e=>{e.currentTarget.style.boxShadow=T.shadow;}}>
+          <div style={{position:'relative', flexShrink:0, width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center'}}>
+            <Icon name="activity" size={26} color='#92400e' strokeWidth={1.5} />
+            <div style={{position:'absolute', top:0, right:0, width:8, height:8, borderRadius:'50%', background:'#f59e0b', border:'1.5px solid #fffbeb'}} />
+          </div>
+          <div style={{textAlign:'left', minWidth:0}}>
+            <div style={{fontSize:16, fontWeight:700, color:'#78350f', lineHeight:1.2, whiteSpace:'nowrap'}}>{ACTIVITY_DATA.length} new</div>
+            <div style={{fontSize:13, color:'#92400e', marginTop:1, whiteSpace:'nowrap', fontWeight:500}}>Since 8:15 AM</div>
+          </div>
+        </button>
       </div>
       {/* 2×2 grid */}
       <div style={{flex:1, display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:12, minHeight:0}}>
@@ -1406,7 +1463,7 @@ function Sidebar({ active, onNav, expanded, onToggle }) {
 }
 
 /* ─── TOP BAR ─────────────────────────────────────────────────────────── */
-const PAGE_LABELS = {home:'Home',inbox:'Inbox',messages:'Messages',calendar:'Calendar',search:'Search',connections:'Connections',settings:'Settings',billing:'Billing',help:'Help & legal'};
+const PAGE_LABELS = {home:'Home',inbox:'Inbox',messages:'Messages',calendar:'Calendar',activity:'Activity',search:'Search',connections:'Connections',settings:'Settings',billing:'Billing',help:'Help & legal'};
 
 function TopBar({ active, onNav }) {
   const [search, setSearch] = useState('');
@@ -1442,6 +1499,7 @@ function App() {
           {active==='inbox'       && <InboxPage initialSelected={deepLink} />}
           {active==='messages'    && <MessagesPage initialActive={deepLink} />}
           {active==='calendar'    && <CalendarPage />}
+          {active==='activity'    && <ActivityPage onNav={nav} />}
           {active==='search'      && <SearchPage />}
           {active==='connections' && <ConnectionsPage />}
           {active==='settings'    && <SettingsPage />}
