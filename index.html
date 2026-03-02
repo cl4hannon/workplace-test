@@ -593,7 +593,7 @@ function MiniNotifications({ onOpen }) {
   const visible = appFilter==='all' ? notifs : notifs.filter(n=>n.source===appFilter);
 
   const NotifRow = ({n}) => (
-    <div onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,read:true}:x))}
+    <div onClick={()=>{ setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,read:true}:x)); onOpen(n.id,'row'); }}
       style={{display:'flex', gap:12, padding:'12px 16px', borderBottom:`1px solid ${T.borderSubtle}`,
         cursor:'pointer', background:!n.read?'#fafafa':'transparent', opacity:n.read?0.65:1}}
       onMouseEnter={e=>e.currentTarget.style.background='#fafafa'}
