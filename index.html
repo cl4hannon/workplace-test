@@ -308,7 +308,7 @@ function MiniInbox({ onOpen }) {
 
   return (
     <Card style={{height:'100%'}}>
-      <CardHeader title="Inbox" icon="mail" count={unread} action onAction={onOpen} />
+      <CardHeader title="Inbox" icon="mail" count={unread} action onAction={()=>onOpen(null,'header')} />
 
       {/* ── Row 1: App source tabs ──────────────────────────────────── */}
       <div style={{display:'flex', gap:0, borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, overflowX:'auto'}}>
@@ -363,7 +363,7 @@ function MiniInbox({ onOpen }) {
       {/* ── Email rows ────────────────────────────────────────────────── */}
       <div style={{flex:1, overflowY:'auto'}}>
         {filtered.slice(0,3).map(m=>(
-          <div key={m.id} onClick={()=>onOpen(m.id)}
+          <div key={m.id} onClick={()=>onOpen(m.id,'row')}
             style={{display:'flex', gap:12, padding:'12px 16px', borderBottom:`1px solid ${T.borderSubtle}`,
               cursor:'pointer', background:m.unread?'#fafafa':'transparent'}}
             onMouseEnter={e=>e.currentTarget.style.background='#fafafa'}
@@ -386,7 +386,7 @@ function MiniInbox({ onOpen }) {
         ))}
       </div>
       {filtered.length > 3 && (
-        <div onClick={onOpen} style={{padding:'10px 16px', fontSize:16, color:T.textSec, cursor:'pointer', borderTop:`1px solid ${T.borderSubtle}`, textAlign:'center', fontWeight:500}}
+        <div onClick={()=>onOpen(null,'more')} style={{padding:'10px 16px', fontSize:16, color:T.textSec, cursor:'pointer', borderTop:`1px solid ${T.borderSubtle}`, textAlign:'center', fontWeight:500}}
           onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.textSec}>
           +{filtered.length-3} more →
         </div>
@@ -410,7 +410,7 @@ function MiniMessages({ onOpen }) {
 
   return (
     <Card style={{height:'100%'}}>
-      <CardHeader title="Messages" icon="chat" count={unread} action onAction={onOpen} />
+      <CardHeader title="Messages" icon="chat" count={unread} action onAction={()=>onOpen(null,'header')} />
 
       {/* ── Row 1: App source tabs ──────────────────────────────────── */}
       <div style={{display:'flex', gap:0, borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0, overflowX:'auto'}}>
@@ -465,7 +465,7 @@ function MiniMessages({ onOpen }) {
       {/* ── Conversation list ──────────────────────────────────────── */}
       <div style={{flex:1, overflowY:'auto'}}>
         {filtered.slice(0,3).map(m=>(
-          <div key={m.id} onClick={()=>onOpen(m.id)} style={{display:'flex', gap:12, padding:'12px 16px', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer', background:m.unread?'#fafafa':'transparent'}}
+          <div key={m.id} onClick={()=>onOpen(m.id,'row')} style={{display:'flex', gap:12, padding:'12px 16px', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer', background:m.unread?'#fafafa':'transparent'}}
             onMouseEnter={e=>e.currentTarget.style.background='#fafafa'} onMouseLeave={e=>e.currentTarget.style.background=m.unread?'#fafafa':'transparent'}>
             <div style={{position:'relative', flexShrink:0}}>
               <StackedAvatars participants={m.participants||[{initials:m.initials,photo:m.photo||null}]} size={46} />
@@ -504,7 +504,7 @@ function MiniCalendar({ onOpen }) {
 
   return (
     <Card style={{height:'100%'}}>
-      <CardHeader title="Calendar" icon="cal" count={EVENTS_DATA.length} action onAction={onOpen} />
+      <CardHeader title="Calendar" icon="cal" count={EVENTS_DATA.length} action onAction={()=>onOpen(null,'header')} />
 
       {/* ── Week strip ───────────────────────────────────────────────── */}
       <div style={{display:'flex', gap:3, padding:'10px 16px 8px', borderBottom:`1px solid ${T.borderSubtle}`, flexShrink:0}}>
@@ -547,7 +547,7 @@ function MiniCalendar({ onOpen }) {
       {/* ── Event list ───────────────────────────────────────────────── */}
       <div style={{flex:1, overflowY:'auto', padding:'8px 16px 10px'}}>
         {calFiltered.map(ev=>(
-          <div key={ev.id} onClick={onOpen} style={{display:'flex', alignItems:'center', gap:9, padding:'8px 0', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer'}}
+          <div key={ev.id} onClick={()=>onOpen(null,'event')} style={{display:'flex', alignItems:'center', gap:9, padding:'8px 0', borderBottom:`1px solid ${T.borderSubtle}`, cursor:'pointer'}}
             onMouseEnter={e=>e.currentTarget.style.opacity='0.75'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
             <ToolLogo tool={ev.provider} size={14} />
             <div style={{flex:1, minWidth:0}}>
@@ -681,7 +681,7 @@ function MiniNotifications({ onOpen }) {
 
       <div style={{flex:1, overflowY:'auto'}}>
         {renderList()}
-        <div onClick={onOpen} style={{padding:'10px 16px', fontSize:16, color:T.textSec, cursor:'pointer', textAlign:'center', borderTop:`1px solid ${T.borderSubtle}`}}
+        <div onClick={()=>onOpen(null,'more')} style={{padding:'10px 16px', fontSize:16, color:T.textSec, cursor:'pointer', textAlign:'center', borderTop:`1px solid ${T.borderSubtle}`}}
           onMouseEnter={e=>e.currentTarget.style.color=T.text} onMouseLeave={e=>e.currentTarget.style.color=T.textSec}>
           View all →
         </div>
@@ -1458,10 +1458,10 @@ function HomePage({ onNav, visitedPages }) {
         </div>
       <div style={{display:'flex', gap:8}}>
         {[
-          {icon:'mail',  label:dispEmail>0 ? `${dispEmail} unread`  : '0 unread', sub:'Email',         nav:'inbox-focus',         alert:dispEmail>0},
-          {icon:'chat',  label:dispMsg>0   ? `${dispMsg} unread`    : '0 unread', sub:'Messages',      nav:'messages-focus',      alert:dispMsg>0},
-          {icon:'cal',   label:`5 upcoming events`,                               sub:'Today',         nav:'calendar',            alert:false},
-          {icon:'bell',  label:dispNotif>0 ? `${dispNotif} new`     : '0 new',   sub:'Notifications', nav:'notifications-focus', alert:dispNotif>0},
+          {icon:'mail',  label:dispEmail>0 ? `${dispEmail} unread`  : '0 unread', sub:'Email',         nav:'inbox-strip',         alert:dispEmail>0},
+          {icon:'chat',  label:dispMsg>0   ? `${dispMsg} unread`    : '0 unread', sub:'Messages',      nav:'messages-strip',      alert:dispMsg>0},
+          {icon:'cal',   label:`5 upcoming events`,                               sub:'Today',         nav:'calendar-strip',      alert:false},
+          {icon:'bell',  label:dispNotif>0 ? `${dispNotif} new`     : '0 new',   sub:'Notifications', nav:'notifications-strip', alert:dispNotif>0},
         ].map(s=>(
           <button key={s.nav+s.sub} onClick={()=>onNav(s.nav)} style={{flex:1, display:'flex', alignItems:'center', gap:12, padding:'11px 16px', border:`1px solid ${T.border}`, borderRadius:9, background:T.surface, cursor:'pointer', boxShadow:T.shadow, transition:'all 0.12s'}}
             onMouseEnter={e=>{e.currentTarget.style.boxShadow=T.shadowMd;}} onMouseLeave={e=>{e.currentTarget.style.boxShadow=T.shadow;}}>
@@ -1479,10 +1479,10 @@ function HomePage({ onNav, visitedPages }) {
       </div>
       {/* 2×2 grid */}
       <div style={{flex:1, display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:12, minHeight:0}}>
-        <MiniInbox    onOpen={(id)=>onNav('inbox', id)} />
-        <MiniMessages onOpen={(id)=>onNav('messages', id)} />
-        <MiniCalendar onOpen={()=>onNav('calendar')} />
-        <MiniNotifications onOpen={()=>onNav('notifications')} />
+        <MiniInbox    onOpen={(id,src)=>onNav(`inbox-${src}`, id)} />
+        <MiniMessages onOpen={(id,src)=>onNav(`messages-${src}`, id)} />
+        <MiniCalendar onOpen={(id,src)=>onNav(`calendar-${src}`, id)} />
+        <MiniNotifications onOpen={(id,src)=>onNav(`notifications-${src}`, id)} />
       </div>
     </div>
   );
@@ -1509,8 +1509,10 @@ function Sidebar({ active, onNav, expanded, onToggle, visitedPages }) {
     const isActive = active===item.id;
     const rawCount = item.badge ? item.badge() : 0;
     const count = (visitedPages && visitedPages.has(item.id)) ? 0 : rawCount;
+    const SIDEBAR_TAGGED = ['inbox','messages','calendar','notifications'];
+    const navTarget = SIDEBAR_TAGGED.includes(item.id) ? `${item.id}-sidebar` : item.id;
     return (
-      <div onClick={()=>onNav(item.id)} title={!expanded ? item.label : ''} style={{position:'relative', display:'flex', alignItems:'center', gap:10, padding: expanded ? '7px 10px' : '7px', marginBottom:2, borderRadius:T.radiusSm, cursor:'pointer', background:isActive?T.activeBg:'transparent', justifyContent: expanded?'flex-start':'center', transition:'background 0.1s'}}
+      <div onClick={()=>onNav(navTarget)} title={!expanded ? item.label : ''} style={{position:'relative', display:'flex', alignItems:'center', gap:10, padding: expanded ? '7px 10px' : '7px', marginBottom:2, borderRadius:T.radiusSm, cursor:'pointer', background:isActive?T.activeBg:'transparent', justifyContent: expanded?'flex-start':'center', transition:'background 0.1s'}}
         onMouseEnter={e=>{if(!isActive)e.currentTarget.style.background=T.hover;}}
         onMouseLeave={e=>{e.currentTarget.style.background=isActive?T.activeBg:'transparent';}}>
         <Icon name={item.icon} size={16} color={isActive?T.iconActive:T.iconInactive} strokeWidth={isActive?2:1.6} />
@@ -1586,17 +1588,18 @@ function TopBar({ active, onNav }) {
 
 /* ─── APP ROOT ───────────────────────────────────────────────────────── */
 function App() {
-  const initialHash = window.location.hash.replace('#','') || 'home';
+  const stripSuffix = id => id.replace(/-sidebar|-strip|-header|-row|-more|-event|-focus/g, '');
+  const initialHash = stripSuffix(window.location.hash.replace('#','')) || 'home';
   const [active, setActive]       = useState(initialHash);
   const [expanded, setExpanded]   = useState(true);
   const [deepLink, setDeepLink]   = useState(null);
   const [visitedPages, setVisitedPages] = useState(new Set());
   const TRACKABLE = ['inbox','messages','notifications'];
   const nav = useCallback((id, itemId=null) => {
-    setActive(id);
+    const baseId = stripSuffix(id);
+    setActive(baseId);
     setDeepLink(itemId);
     window.location.hash = id;
-    const baseId = id.replace('-focus', '');
     if (TRACKABLE.includes(baseId)) setVisitedPages(v => new Set([...v, baseId]));
   }, []);
   return (
@@ -1606,10 +1609,10 @@ function App() {
         <TopBar active={active} onNav={nav} />
         <div style={{flex:1, overflow:'hidden', padding:'16px 20px', display:'flex', flexDirection:'column', minHeight:0}}>
           {active==='home'        && <HomePage onNav={nav} visitedPages={visitedPages} />}
-          {(active==='inbox'       || active==='inbox-focus')         && <InboxPage initialSelected={deepLink} />}
-          {(active==='messages'    || active==='messages-focus')      && <MessagesPage initialActive={deepLink} />}
+          {active==='inbox'         && <InboxPage initialSelected={deepLink} />}
+          {active==='messages'      && <MessagesPage initialActive={deepLink} />}
           {active==='calendar'      && <CalendarPage />}
-          {(active==='notifications'|| active==='notifications-focus') && <NotificationsPage />}
+          {active==='notifications' && <NotificationsPage />}
           {active==='activity'      && <ActivityPage onNav={nav} />}
           {active==='search'      && <SearchPage />}
           {active==='connections' && <ConnectionsPage />}
