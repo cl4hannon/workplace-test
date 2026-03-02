@@ -421,7 +421,7 @@ function MiniMessages({ onOpen }) {
             : MSGS_DATA.filter(m=>m.platform===a.id && m.unread).length;
           const isActive = appFilter===a.id;
           return (
-            <button key={a.id} onClick={()=>{ setAppFilter(a.id); setConvoFilter(null); }}
+            <button key={a.id} onClick={()=>{ setAppFilter(a.id); setConvoFilter(null); if(a.id==='slack') window.location.hash='home-slack'; }}
               style={{display:'flex', alignItems:'center', gap:4, padding:'9px 13px',
                 border:'none', borderBottom:`2px solid ${isActive?T.text:'transparent'}`,
                 background:'transparent', color:isActive?T.text:T.textMuted,
@@ -1588,7 +1588,7 @@ function TopBar({ active, onNav }) {
 
 /* ─── APP ROOT ───────────────────────────────────────────────────────── */
 function App() {
-  const stripSuffix = id => id.replace(/-sidebar|-strip|-header|-row|-more|-event|-focus/g, '');
+  const stripSuffix = id => id.replace(/-sidebar|-strip|-header|-row|-more|-event|-focus/g, '').replace(/^home-slack$/, 'home');
   const initialHash = stripSuffix(window.location.hash.replace('#','')) || 'home';
   const [active, setActive]       = useState(initialHash);
   const [expanded, setExpanded]   = useState(true);
