@@ -1458,10 +1458,10 @@ function HomePage({ onNav, visitedPages }) {
         </div>
       <div style={{display:'flex', gap:8}}>
         {[
-          {icon:'mail',  label:dispEmail>0 ? `${dispEmail} unread`  : '0 unread', sub:'Email',         nav:'inbox',         alert:dispEmail>0},
-          {icon:'chat',  label:dispMsg>0   ? `${dispMsg} unread`    : '0 unread', sub:'Messages',      nav:'messages',      alert:dispMsg>0},
-          {icon:'cal',   label:`5 upcoming events`,                               sub:'Today',         nav:'calendar',      alert:false},
-          {icon:'bell',  label:dispNotif>0 ? `${dispNotif} new`     : '0 new',   sub:'Notifications', nav:'notifications', alert:dispNotif>0},
+          {icon:'mail',  label:dispEmail>0 ? `${dispEmail} unread`  : '0 unread', sub:'Email',         nav:'inbox-focus',         alert:dispEmail>0},
+          {icon:'chat',  label:dispMsg>0   ? `${dispMsg} unread`    : '0 unread', sub:'Messages',      nav:'messages-focus',      alert:dispMsg>0},
+          {icon:'cal',   label:`5 upcoming events`,                               sub:'Today',         nav:'calendar',            alert:false},
+          {icon:'bell',  label:dispNotif>0 ? `${dispNotif} new`     : '0 new',   sub:'Notifications', nav:'notifications-focus', alert:dispNotif>0},
         ].map(s=>(
           <button key={s.nav+s.sub} onClick={()=>onNav(s.nav)} style={{flex:1, display:'flex', alignItems:'center', gap:12, padding:'11px 16px', border:`1px solid ${T.border}`, borderRadius:9, background:T.surface, cursor:'pointer', boxShadow:T.shadow, transition:'all 0.12s'}}
             onMouseEnter={e=>{e.currentTarget.style.boxShadow=T.shadowMd;}} onMouseLeave={e=>{e.currentTarget.style.boxShadow=T.shadow;}}>
@@ -1596,7 +1596,8 @@ function App() {
     setActive(id);
     setDeepLink(itemId);
     window.location.hash = id;
-    if (TRACKABLE.includes(id)) setVisitedPages(v => new Set([...v, id]));
+    const baseId = id.replace('-focus', '');
+    if (TRACKABLE.includes(baseId)) setVisitedPages(v => new Set([...v, baseId]));
   }, []);
   return (
     <div style={{display:'flex', height:'100vh', overflow:'hidden', background:T.bg}}>
@@ -1605,10 +1606,10 @@ function App() {
         <TopBar active={active} onNav={nav} />
         <div style={{flex:1, overflow:'hidden', padding:'16px 20px', display:'flex', flexDirection:'column', minHeight:0}}>
           {active==='home'        && <HomePage onNav={nav} visitedPages={visitedPages} />}
-          {active==='inbox'       && <InboxPage initialSelected={deepLink} />}
-          {active==='messages'    && <MessagesPage initialActive={deepLink} />}
+          {(active==='inbox'       || active==='inbox-focus')         && <InboxPage initialSelected={deepLink} />}
+          {(active==='messages'    || active==='messages-focus')      && <MessagesPage initialActive={deepLink} />}
           {active==='calendar'      && <CalendarPage />}
-          {active==='notifications' && <NotificationsPage />}
+          {(active==='notifications'|| active==='notifications-focus') && <NotificationsPage />}
           {active==='activity'      && <ActivityPage onNav={nav} />}
           {active==='search'      && <SearchPage />}
           {active==='connections' && <ConnectionsPage />}
